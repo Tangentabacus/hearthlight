@@ -66,7 +66,7 @@ const BUILDS = {
   shrine:     { name: 'Shrine of Sparks',  emoji: '🕯️', cost: { wood: 10, stone: 25 }, slots: 0, unlock: 4, color: '#a08a40', work: 3,   desc: 'A small comfort against the dark.' },
 };
 const JOB_TYPES = ['forager', 'woodcutter', 'fisher', 'hunter', 'farm', 'quarry', 'delver', 'watch', 'kiln'];
-const GATHER_KINDS = { woodcutter: ['ancient', 'tree'], forager: ['berry'], quarry: ['stone'], delver: ['ruin'], fisher: ['fish', 'water'] };
+const GATHER_KINDS = { woodcutter: ['ancient', 'tree'], forager: ['berry'], quarry: ['stone'], delver: ['derrick', 'ruin'], fisher: ['fish', 'water'] };
 
 const PERKS = [
   { id: 'greenthumb',  name: 'Green Thumb',        desc: 'Crops come in a third heavier.' },
@@ -118,10 +118,12 @@ const EVENTS = [
 ];
 
 const LORE = {
-  'fire-hunger':  { t: 'The Fire Hungers',    x: 'The Hearth eats wood day and night, and faster for every mouth it warms. Your people toss a stick when it falls truly low — never more. A bright blaze is the keeper\'s work. Yours.' },
-  'fire-low':     { t: 'Dwindling',           x: 'As the flames fall, the light itself draws inward. Fields and camps at the edge fall dark and stand idle. Things you cannot see come closer.' },
-  'fire-out':     { t: 'The Cold Dark',       x: 'The fire is dead. The room is freezing. People die in the cold dark — rekindle it with wood, quickly.' },
-  'embers':       { t: 'Embers',              x: 'The elders say it plainly: a small fire dies, and a fire without embers stays small. Find them — in the glowing trees, under the ruins — or the village fades. Nothing matters more.' },
+  'theflight':    { t: 'The Flight',          x: 'Three pairs, six souls, out the service gate before dawn — off the registry, off the grid, off the maps that watch back. You do not say the regime\'s name aloud. Names travel, in the dark. The forest does not report you. The fire keeps it that way.' },
+  'fire-hunger':  { t: 'The Fire Hungers',    x: 'The Hearth eats wood day and night, and faster for every mouth it warms. Your people toss a stick when it falls truly low — never more. A bright blaze is the keeper\'s work. Yours. And bright work goes quicker: everything is easier in honest light.' },
+  'fire-low':     { t: 'Dwindling',           x: 'As the flames fall, the light itself draws inward. Fields and camps at the edge fall dark and stand idle. And the watchers in the dark write it all down, and edge closer.' },
+  'fire-out':     { t: 'The Cold Dark',       x: 'The fire is dead. The room is freezing. The dark belongs to them — the fire is the only ground that is yours. Rekindle it with wood. Quickly.' },
+  'embers':       { t: 'Embers',              x: 'Coals that do not cool. Too regular to be wood, too warm to be stone — seeds of the old power, the elders say, from before the sky was rationed. The regime burned every one it could find, which tells you everything. Find them — in the glowing trees, under the ruins — or the village fades.' },
+  'whyfire':      { t: 'Why the Fire',        x: 'They do not fear heat. They fear flame — raw, wild, unscheduled light. Their glass eyes were tuned for the ordered dark, and a true fire is noise to them: blinding, unreadable, unreportable. That is why the regime banned open flame. That is why you lit one.' },
   'first-gift':   { t: 'Gifts of the Fire',   x: 'Each time the Hearth grows, it offers a choice of three gifts. A gift is forever. Choose like it matters.' },
   'winter':       { t: 'Winter',              x: 'Nothing grows. Forage fails. Fish hide deep beneath the ice. The fire eats faster. Survive on the hunt and what autumn left you.' },
   'harvest':      { t: 'The Harvest',         x: 'Crops sown in spring swell through summer and come in heavy in autumn. An unharvested field is killed by the first frost.' },
@@ -130,11 +132,11 @@ const LORE = {
   'paths':        { t: 'Worn Paths',          x: 'Where feet pass often, a path wears in — and feet move faster on a worn path. Villages grow along their roads.' },
   'commute':      { t: 'The Long Walk',       x: 'Workers walk from bed to workplace to the resource itself, every day. Each step is an hour not worked. Place buildings beside their work, and homes beside the buildings.' },
   'construction': { t: 'Raising Walls',       x: 'Nothing builds itself. Idle hands raise new structures — and if no hands are idle, the scaffold stands empty.' },
-  'eyes':         { t: 'Eyes in the Dark',    x: 'Something circles beyond the light. It fears a roaring fire — and creeps nearer as the flames fall low.' },
-  'bolder':       { t: 'Bolder Every Year',   x: 'The dark is learning. Year on year the things grow braver — drawn to the noise and the stores, even into the light itself.' },
-  'monster-slain':{ t: 'They Can Die',        x: 'Spears in trained hands can kill the things in the dark — and the dead drop what they have swallowed. A Watch Post turns villagers into militia.' },
-  'monster-loss': { t: 'And So Can We',       x: 'The dark took someone. Keep the fire high, or keep spears between it and your people.' },
-  'raid':         { t: 'Ransacked',           x: 'They came into the light and broke what we built. Walls, watchposts, and bright braziers turn them aside.' },
+  'eyes':         { t: 'Eyes in the Dark',    x: 'Something circles beyond the light, patient as paperwork. Animals blink. These watch in shifts. They are looking for you — six names that walked off a registry — and they creep nearer whenever the flames fall low.' },
+  'bolder':       { t: 'Bolder Every Year',   x: 'The dark is learning your village the way a clerk learns a file. Year on year the watchers grow braver — drawn to the noise, the stores, the headcount. Somewhere, someone is still funding the search.' },
+  'monster-slain':{ t: 'They Can Die',        x: 'Spears in trained hands can end the things in the dark — and up close, under the mist, there is wire in them, and a glass eye, and parts no animal grew. Made things. Made by the ones you fled. The dead ones drop what they have swallowed.' },
+  'monster-loss': { t: 'And So Can We',       x: 'The dark took someone. Taken, or collected — no one says the second word aloud. Keep the fire high, or keep spears between it and your people.' },
+  'raid':         { t: 'Ransacked',           x: 'They came into the light and broke what we built — methodically, like an inspection. Walls, watchposts, and bright braziers turn them aside.' },
   'torchlight':   { t: 'Carried Flame',       x: 'A spark of the Hearth, set in a brazier, makes its own small day. Light can be planted — and the village can follow it outward.' },
   'relics':       { t: 'Relics',              x: 'The ones who came before left more than ruins. What the delvers bring up changes everything. Keep them digging.' },
   'trader':       { t: 'The Trader',          x: 'A wagon crosses the dark with a lantern swinging. It pays coin for surplus, sells what the forest will not give, and leaves by a different road than it came.' },
@@ -151,7 +153,12 @@ const LORE = {
   'upgrade':      { t: 'Better Tools',        x: 'A building, rebuilt wiser, holds one more pair of hands and wastes less of their day.' },
   'forester':     { t: 'The Forester',        x: 'An upgraded camp keeps one set of hands planting instead of felling. The forest, tended, never empties.' },
   'forms':        { t: 'What the Fire Becomes', x: 'Fed enough, the fire stops being a fire. It becomes a place — a hall, a keep, a temple. It can only ever become one thing. Choose like your grandchildren are watching.' },
-  'visitors':     { t: 'Strangers on the Road', x: 'Not everyone the light draws in is ordinary. Some carry gifts. Some carry debts. Some carry trouble. The village remembers how you treat them — and so do they.' },
+  'visitors':     { t: 'Strangers on the Road', x: 'Not everyone the light draws in is ordinary. Runaways, like you were. Some carry gifts. Some carry debts. Some carry trouble. The village remembers how you treat them — and so do they.' },
+  'pet':          { t: 'The Village Animal',  x: 'It eats a little and asks for nothing, and the whole village stands straighter for it. Better still: it smells the watchers long before any eye sees them, and it is not afraid to say so. Keep it fed. It chose you.' },
+  'lm_road':      { t: 'The Old Road',        x: 'Under the moss, cracked black stone in a line too straight for nature. The world had roads once, and they went somewhere worth going, fast. Feet still remember: it is the surest ground there is.' },
+  'lm_pylon':     { t: 'The Iron Tree',       x: 'A tower of rusted lattice, taller than any pine, holding up nothing. It carried light once — not firelight, the other kind. The kind that could be measured, metered, and switched off. It was switched off.' },
+  'lm_derrick':   { t: 'The Black Derrick',   x: 'It drank from the deep and fed the engines of the old world until the old world stopped. The delvers swear the ground beneath is still warm — embers, of a sort, that never knew a tree. Whatever the regime became, it began with things like this.' },
+  'lm_hulk':      { t: 'The Husk',            x: 'A carriage of rusted metal with no horse and seats for six. Someone fled in it once, the same direction you did, with the same number of people. It got this far. You got further.' },
 };
 
 const NAMES = ['Abel','Anya','Bram','Cora','Dane','Edda','Finn','Greta','Hale','Ines','Joren','Kara','Liv','Milo','Nessa','Odo','Petra','Quinn','Rolf','Sif','Tova','Ulf','Vera','Wren','Ysolt','Zane','Beck','Hazel','Iver','Sten','Maren','Oskar','Runa','Tilde','Eira','Falk'];
@@ -405,6 +412,38 @@ function genMap(seedStr) {
   ensure('ruin', 2, 16, 7);
   ensure('stone', 4, 11, 30);
   ensure('stone', 7, 15, 30);
+  // the old world, half-swallowed — rare, far out, and not on every map
+  const landAt = (x, y) => x > 1 && y > 1 && x < W - 2 && y < H - 2 && tiles[idx(x, y)].t !== 'water';
+  const farSpot = () => {
+    for (let tr = 0; tr < 60; tr++) {
+      const a = rng() * Math.PI * 2, d = 26 + rng() * 16;
+      const x = Math.round(HX + Math.cos(a) * d), y = Math.round(HY + Math.sin(a) * d);
+      if (landAt(x, y)) return [x, y];
+    }
+    return null;
+  };
+  if (rng() < 0.4) {       // a stretch of the old road, too straight for nature
+    const s = farSpot();
+    if (s) {
+      const ang = rng() * Math.PI * 2, len = 10 + Math.floor(rng() * 12);
+      for (let i = 0; i < len; i++) {
+        const x = Math.round(s[0] + Math.cos(ang) * i), y = Math.round(s[1] + Math.sin(ang) * i);
+        if (landAt(x, y)) { tiles[idx(x, y)].t = 'road'; tiles[idx(x, y)].amt = 0; }
+      }
+    }
+  }
+  if (rng() < 0.35) {      // an iron tree that once carried the other kind of light
+    const s = farSpot();
+    if (s) { tiles[idx(s[0], s[1])].t = 'pylon'; tiles[idx(s[0], s[1])].amt = 0; }
+  }
+  if (rng() < 0.3) {       // a black derrick, still warm underneath
+    const s = farSpot();
+    if (s) { tiles[idx(s[0], s[1])].t = 'derrick'; tiles[idx(s[0], s[1])].amt = 12 + Math.floor(rng() * 7); }
+  }
+  if (rng() < 0.35) {      // a dead carriage with seats for six
+    const s = farSpot();
+    if (s) { tiles[idx(s[0], s[1])].t = 'hulk'; tiles[idx(s[0], s[1])].amt = 0; }
+  }
   return tiles;
 }
 
@@ -413,7 +452,7 @@ function walkableTile(x, y, opt) {
   if (x < 0 || y < 0 || x >= W || y >= H) return false;
   const t = G.tiles[idx(x, y)];
   if (t.t === 'water' && !isWinter()) return false;
-  if (t.t === 'stone' || t.t === 'ruin') return false;   // nobody strolls through a boulder field
+  if (t.t === 'stone' || t.t === 'ruin' || t.t === 'pylon' || t.t === 'derrick' || t.t === 'hulk') return false;
   if (OCC[idx(x, y)]) return false;
   if (!opt.dark && !isLit(x, y)) return false;
   return true;
@@ -421,13 +460,15 @@ function walkableTile(x, y, opt) {
 function moveCost(x, y) {
   // established paths are much cheaper than breaking trail — so everyone
   // funnels onto the same few roads, and the roads deepen
-  const wr = G.wear[idx(x, y)];
-  if (wr >= 12) return 0.4;
-  if (wr >= 4) return 0.7;
   const t = G.tiles[idx(x, y)].t;
+  if (t === 'road') return 0.35;                          // the old world built to last
+  const wr = G.wear[idx(x, y)];
+  if (wr >= 12) return 0.35;
+  if (wr >= 4) return 0.65;
   if (t === 'tree' || t === 'ancient' || t === 'berry') return 3.2;
   if (t === 'water') return 1.4;                          // ice
-  return 1;
+  // a stable whisper of preference, so everyone breaks trail in the SAME place
+  return 1 + (((x * 7 + y * 13) % 5) * 0.03);
 }
 function heapPush(h, n) {
   h.push(n);
@@ -504,7 +545,7 @@ function spawnVillager(o) {
     name: o.name || choice(NAMES),
     family: o.family || choice(SURNAMES),
     sex: o.sex || (Math.random() < 0.5 ? 'm' : 'f'),
-    age: o.age != null ? o.age : 2 + Math.random() * 10,
+    age: o.age != null ? o.age : ADULT_AGE + Math.random() * 8,
     apt: o.apt || randApt(),
     x: o.x != null ? o.x : HX + 0.5 + Math.cos(a) * r,
     y: o.y != null ? o.y : HY + 0.5 + Math.sin(a) * r,
@@ -623,63 +664,65 @@ function workplaceViable(b) {
 }
 function canWork(v) { return v.age >= ADULT_AGE && !(v.injured > G.day); }
 
+/* ============================================================
+   THE WORK QUEUE — rebuilt from the ground up.
+   Every able villager re-applies for every post, every time.
+   Posts are ranked: food and wood first, scaffolds always in the
+   queue, every building gets one pair of hands before any gets
+   two. The only reason a post stays empty is that the village is
+   out of people. Nothing is ever stuck.
+   ============================================================ */
 function assignJobs() {
+  // clear the dead wood: gone, halted or worked-out posts release their crews
   for (const v of G.villagers) {
     if (v.job == null) continue;
     const b = byId(v.job);
-    if (!b || b.halt || !canWork(v) || !workplaceViable(b)) { v.job = null; v.equipped = false; }
+    if (!b || b.halt || !canWork(v) || !workplaceViable(b)) { v.job = null; v.equipped = false; v.workTi = null; }
   }
-  const eatRate = Math.max(1, pop()) * EAT;
-  const foodDays = G.res.food / eatRate;
-  const needWood = (G.res.wood < 30 || G.fire.fuel < 40) ? 2.5 : 1;
-  const needFood = foodDays < 6 ? 2.5 : 1;
+  const foodDays = G.res.food / (Math.max(1, pop()) * EAT);
+  const needWood = (G.res.wood < 30 || G.fire.fuel < 40) ? 2.2 : 1;
+  const needFood = foodDays < 6 ? 2.2 : 1;
   const needSpears = G.monsters.length > 0 ? 2.4 : 1 + Math.min(1.2, Math.max(0, yearNum() - 2) * 0.08);
-  const urgency = { woodcutter: needWood, forager: needFood, farm: needFood * 1.3, fisher: needFood, hunter: needFood, kiln: 0.8, delver: 0.9, quarry: 0.9, watch: needSpears, _site: 1.3, _rush: 2.6 };
-  if (G.leader && G.leader.focus === 'warden') urgency.watch += 0.4;
-  const open = new Map(), assigned = new Map();
+  const baseUrg = {
+    woodcutter: 1.45 * needWood, forager: 1.4 * needFood, farm: 1.5 * needFood,
+    fisher: 1.4 * needFood, hunter: 1.42 * needFood,
+    kiln: 0.8, delver: 0.95, quarry: 0.9, watch: needSpears,
+  };
+  if (G.leader && G.leader.focus === 'warden') baseUrg.watch += 0.4;
+  // the queue of posts: one slot per building per tier, so crews spread thin before doubling up
+  const units = [];
   for (const b of G.builds) {
-    let slots = b.built ? (b.halt ? 0 : slotsOf(b)) : 2;       // sites take 2 builders
-    if (b.maxCrew != null) slots = Math.min(slots, b.maxCrew); // the player can order a thinner crew
+    let slots = b.built ? (b.halt ? 0 : slotsOf(b)) : 2;
+    if (b.maxCrew != null) slots = Math.min(slots, b.maxCrew);
     if (!slots || (b.built && !workplaceViable(b))) continue;
-    const used = G.villagers.filter(v => v.job === b.id).length;
-    assigned.set(b.id, used);
-    if (used < slots) open.set(b.id, slots - used);
+    const urg = b.built ? (baseUrg[b.type] || 1) : (b.rush ? 2.8 : 1.6);   // scaffolds are real jobs
+    for (let k = 0; k < slots; k++) units.push({ b, pr: urg / (1 + k * 0.7) });
   }
-  const free = G.villagers.filter(v => canWork(v) && v.job == null);
-  for (const v of free) {
-    const [hx, hy] = homePos(v);
-    let best = null, bestScore = 0;
-    for (const [bid, n] of open) {
-      if (n <= 0) continue;
-      const b = byId(bid);
-      const d = (Math.abs(b.x + 0.5 - hx) + Math.abs(b.y + 0.5 - hy)) * 1.2;
-      if (d > JOB_RANGE) continue;
-      const urg = b.built ? (urgency[b.type] || 1) : (b.rush ? urgency._rush : urgency._site);
-      // spread out: each extra worker on the same building counts for less
-      const score = (v.apt[b.type] || 1) * urg / ((1 + d / 16) * (1 + (assigned.get(bid) || 0) * 0.35));
-      if (score > bestScore) { bestScore = score; best = bid; }
+  units.sort((a, b) => b.pr - a.pr);
+  // everyone able re-applies; the best remaining hand wins each post
+  const able = G.villagers.filter(v => canWork(v));
+  const oldJob = new Map(able.map(v => [v.id, v.job]));
+  for (const v of able) v.job = null;
+  const taken = new Set();
+  for (const u of units) {
+    let best = null, bestS = -1, bestD = 0;
+    for (const v of able) {
+      if (taken.has(v.id)) continue;
+      const [hx, hy] = homePos(v);
+      const d = (Math.abs(u.b.x + 0.5 - hx) + Math.abs(u.b.y + 0.5 - hy)) * 1.2;
+      let s = (v.apt[u.b.type] || 1) / (1 + d / 22);
+      if (oldJob.get(v.id) === u.b.id) s *= 1.35;             // no churn without cause
+      if (v.parentJobType === u.b.type) s *= 1.25;            // the family trade calls
+      if (s > bestS) { bestS = s; best = v; bestD = d; }
     }
-    if (best != null) {
-      v.job = best; v.equipped = false;
-      open.set(best, open.get(best) - 1);
-      assigned.set(best, (assigned.get(best) || 0) + 1);
-      const b = byId(best);
-      if ((Math.abs(b.x + 0.5 - hx) + Math.abs(b.y + 0.5 - hy)) * 1.2 > 16) discover('commute');
+    if (!best) break;                                          // out of people — posts stay open
+    taken.add(best.id);
+    best.job = u.b.id;
+    if (oldJob.get(best.id) !== u.b.id) {
+      best.equipped = false; best.workTi = null;
+      G.jobChangesToday = (G.jobChangesToday || 0) + 1;
+      if (bestD > 16) discover('commute');
     }
-  }
-  // no one should stand idle while work goes begging — range be damned, someone walks
-  let openLeft = [...open.entries()].filter(([, n]) => n > 0);
-  let idleLeft = G.villagers.filter(v => canWork(v) && v.job == null);
-  while (openLeft.length && idleLeft.length) {
-    const v = idleLeft.pop();
-    const [hx, hy] = homePos(v);
-    openLeft.sort((a, b2) => {
-      const A = byId(a[0]), B2 = byId(b2[0]);
-      return Math.hypot(A.x - hx, A.y - hy) - Math.hypot(B2.x - hx, B2.y - hy);
-    });
-    const [bid, n] = openLeft[0];
-    v.job = bid; v.equipped = false;
-    if (n - 1 <= 0) openLeft.shift(); else openLeft[0] = [bid, n - 1];
   }
 }
 
@@ -776,7 +819,11 @@ function updateVillager(v, dtDays) {
       const par = adult ? null : isHelper(v) ? helperParent(v) : null;
       const pb = par && par.job != null ? byId(par.job) : null;
       if (pb && pb.built) {
-        setDest(v, pb.x + 0.5 + (Math.random() - 0.5), pb.y + 0.8);
+        v.wait -= dtDays;
+        if (v.wait <= 0 || v.dx == null) {                    // settle in one spot; don't vibrate
+          v.wait = 0.08 + Math.random() * 0.1;
+          setDest(v, pb.x + 0.5 + (Math.random() - 0.5) * 1.6, pb.y + 0.8 + (Math.random() - 0.5));
+        }
         v.state = follow(v, dtDays, speed, false) ? 'helping' : 'walk';
         return;
       }
@@ -810,7 +857,24 @@ function updateVillager(v, dtDays) {
         if (follow(v, dtDays, speed, true)) { v.equipped = true; v.state = 'work'; }
         else v.state = 'walk';
       } else if (b.built && b.type === 'hunter') {
-        // hunters stalk the thickets around the lodge, not a fixed spot
+        // a kill gets carried straight home before the hunt goes on
+        if (v.carry) {
+          if (!v.carry.got) {
+            setDest(v, v.carry.x, v.carry.y);
+            if (follow(v, dtDays, speed, false)) v.carry.got = true;
+            v.state = 'walk';
+          } else {
+            setDest(v, b.x + 0.5, b.y + 0.8);
+            if (follow(v, dtDays, speed * 0.9, false)) {
+              addRes('food', 3);
+              v.carry = null;
+              v.wait = 0;
+            }
+            v.state = 'walk';
+          }
+          return;
+        }
+        // otherwise: stalk the thickets around the lodge, not a fixed spot
         v.wait -= dtDays;
         if (v.wait <= 0 || v.dx == null) {
           v.wait = 0.05 + Math.random() * 0.08;
@@ -847,8 +911,16 @@ function updateVillager(v, dtDays) {
   }
 }
 
-/* what's on their mind (shown when you click them) */
+/* what's on their mind — a thought sits for a while; minds don't flicker */
 function thoughtFor(v) {
+  if (v.thought && G.day - (v.thoughtAt || -9) < 1.5 && v.thoughtCtx === (G.fire.lit ? 1 : 0)) return v.thought;
+  const out = freshThought(v);
+  v.thought = out;
+  v.thoughtAt = G.day;
+  v.thoughtCtx = G.fire.lit ? 1 : 0;
+  return out;
+}
+function freshThought(v) {
   const opts = [];
   const fd = G.res.food / Math.max(1, pop() * EAT);
   if (v.pregnant > 0) opts.push('There will be one more of us soon.');
@@ -931,7 +1003,10 @@ function findGatherTile(b, kinds) {
 function onDeplete(ti) {
   const t = G.tiles[ti];
   if (t.t === 'tree' || t.t === 'stone') { t.t = 'grass'; t.amt = 0; }
-  else if (t.t === 'ruin') {
+  else if (t.t === 'derrick') {
+    t.t = 'hulk'; t.amt = 0;     // drained dry, the husk remains
+    log('The derrick gives up its last warmth. The iron stays, cold now, like everything the old world left.', '', [ti % W, Math.floor(ti / W)]);
+  } else if (t.t === 'ruin') {
     t.t = 'grass'; t.amt = 0;
     if (Math.random() < 0.18) grantRelic([ti % W, Math.floor(ti / W)]);
   } else if (t.t === 'ancient') {
@@ -964,7 +1039,7 @@ function gather(b, want, kinds) {
       if (t.amt <= 0.5) b.tx = null;                // school fished out — find another
       return got;
     }
-    return want * 0.35;                             // open water: thin pickings
+    return want * 0.45;                             // open water: thinner pickings, but honest
   }
   const got = Math.min(want, t.amt);
   t.amt -= got;
@@ -996,7 +1071,7 @@ function prodMult(t) {
   }
   return m;
 }
-const seasonForage = () => [1, 1.5, 1.2, has('ashgardens') ? 0.5 : 0][season()];
+const seasonForage = () => [1, 1.25, 1.15, has('ashgardens') ? 0.5 : 0][season()];
 const seasonFish = () => [1, 1.1, 1, 0.35][season()];
 const seasonHunt = () => [0.8, 1, 1.2, 0.9][season()];
 
@@ -1052,7 +1127,7 @@ function produce(dtDays) {
     if (apt <= 0) continue;
     if (b.type === 'forager') {
       const sm = seasonForage();
-      if (sm > 0) addRes('food', gather(b, 3.4 * apt * sm * lm * prodMult('forager') * k * dtDays, ['berry']));
+      if (sm > 0) addRes('food', gather(b, 2.6 * apt * sm * lm * prodMult('forager') * k * dtDays, ['berry']));
       if (isWinter()) {
         // when nothing grows, they come home with armfuls of deadfall instead
         addRes('wood', 1.0 * apt * lm * k * dtDays);
@@ -1061,7 +1136,7 @@ function produce(dtDays) {
     } else if (b.type === 'woodcutter') {
       addRes('wood', gather(b, 2.4 * apt * lm * prodMult('woodcutter') * k * dtDays, ['ancient', 'tree']));
     } else if (b.type === 'fisher') {
-      addRes('food', gather(b, 2.8 * apt * seasonFish() * lm * prodMult('fisher') * k * dtDays, ['fish', 'water']));
+      addRes('food', gather(b, 3.0 * apt * seasonFish() * lm * prodMult('fisher') * k * dtDays, ['fish', 'water']));
     } else if (b.type === 'hunter') {
       // game runs in thick forest near the lodge — never depleted, never plenty
       let trees = 0;
@@ -1070,7 +1145,7 @@ function produce(dtDays) {
         const x = fx + dx, y = fy + dy;
         if (x >= 0 && y >= 0 && x < W && y < H && (G.tiles[idx(x, y)].t === 'tree' || G.tiles[idx(x, y)].t === 'ancient')) trees++;
       }
-      addRes('food', 2.5 * apt * seasonHunt() * lm * Math.min(1.2, trees / 18) * prodMult('hunter') * k * dtDays);
+      addRes('food', 3.2 * apt * seasonHunt() * lm * Math.min(1.2, trees / 18) * prodMult('hunter') * k * dtDays);
     } else if (b.type === 'quarry') {
       addRes('stone', gather(b, 1.25 * apt * lm * prodMult('quarry') * k * dtDays, ['stone']));
     } else if (b.type === 'delver') {
@@ -1113,7 +1188,7 @@ function farmDaily() {
     if (b.phase === 'grow' && s !== 3) {
       b.growth += [0.028, 0.055, 0.035, 0][s] * (evActive('rains') ? 1.3 : 1) * (evActive('blight') ? 0.5 : 1);
       if (b.growth >= 1 || (s === 2 && b.growth >= 0.5 && b.readyLogged !== yearNum())) {
-        b.crop = 115 * Math.min(b.growth, 1) * prodMult('farm');
+        b.crop = 150 * Math.min(b.growth, 1) * prodMult('farm');
         b.growth = Math.min(b.growth, 1);
         b.phase = 'harvest';
         b.readyLogged = yearNum();
@@ -1292,8 +1367,18 @@ function updateMonsters(dtDays) {
     // braziers hold them off
     if (!m.fleeing && !m.bold && nearTorch(nx, ny, TORCH_R * 0.7)) { nx = m.x; ny = m.y; }
     m.x = clamp(nx, 1, W - 2); m.y = clamp(ny, 1, H - 2);
+    // the dog smells them long before anyone sees them — and they hate being smelled
+    if (G.pet && !m.fleeing && Math.hypot(m.x - G.pet.x, m.y - G.pet.y) < 5) {
+      m.fleeing = true;
+      if (Math.random() < 0.3) log(`${G.pet.name} stands stiff-legged at the dark, making a sound you have never heard ${G.pet.kind === 'dog' ? 'a dog' : 'a cat'} make. Something retreats.`, '', [Math.floor(G.pet.x), Math.floor(G.pet.y)]);
+      sfx('growl');
+    }
 
-    if (m.fleeing) { if (dh > effLight() + 9) m.dead = true; continue; }
+    if (m.fleeing) {
+      discover('whyfire');                    // watching one recoil from flame teaches you something
+      if (dh > effLight() + 9) m.dead = true;
+      continue;
+    }
 
     // militia intercept
     let guard = null, gd = 1e9;
@@ -1390,8 +1475,7 @@ function updateTrader(dtDays) {
   const T = G.trader;
   const speed = 110 * dtDays;
   if (T.state === 'away') {
-    const s = season();
-    if ((s === 1 || s === 2) && G.day >= T.next) {
+    if (G.day >= T.next) {
       const [ex, ey] = edgePoint();
       T.from = [ex, ey];
       T.x = ex + 0.5; T.y = ey + 0.5;
@@ -1447,7 +1531,8 @@ function updateTrader(dtDays) {
   } else if (T.state === 'leaving') {
     if (walk(T.dest[0] + 0.5, T.dest[1] + 0.5)) {
       T.state = 'away';
-      T.next = G.day + 20 + Math.random() * 30;
+      // the wagon comes round once a season, snow or no snow
+      T.next = G.day + DAYS_PER_SEASON * (0.7 + Math.random() * 0.5);
     }
   }
 }
@@ -1650,6 +1735,82 @@ function processDebts() {
   }
 }
 
+/* ---------- the village animal ---------- */
+const PET_NAMES = { dog: ['Ash', 'Biscuit', 'Rook', 'Patch', 'Cinder', 'Bramble'], cat: ['Soot', 'Mouser', 'Wick', 'Smoke', 'Tansy', 'Moth'] };
+const PET_COATS = ['#7a5a38', '#4a4038', '#8a8278', '#2e2a26', '#a08a60', '#665a50', '#8a6a4a'];
+function offerPet() {
+  const kind = Math.random() < 0.6 ? 'dog' : 'cat';
+  const name = choice(PET_NAMES[kind]);
+  showChoice(kind === 'dog' ? '🐕 Something at the Edge of the Light' : '🐈 Something at the Edge of the Light',
+    kind === 'dog'
+      ? 'A thin dog circles the fire at a respectful distance, ribs like fence rails, eyes like it remembers people being kind once. It growls — not at you. At the dark.'
+      : 'A cat appears on the woodpile as if it had always owned it, thin as a whisper. It stares into the dark and the dark, oddly, stares away first.',
+    [
+      { n: `Feed it (8 food)`, d: 'It eats little. It hates the things in the dark more than you do.', fn() {
+        if (G.res.food < 8) { log('You have nothing to spare. It watches you a while, then is gone.'); G.flags.petOffered = false; return; }
+        G.res.food -= 8;
+        G.pet = {
+          kind, name,
+          c1: choice(PET_COATS), c2: choice(PET_COATS),
+          x: HX + 1.5, y: HY + 1.5, dx: null, dy: null, wait: 0, hungry: 0,
+        };
+        log(`${kind === 'dog' ? '🐕' : '🐈'} ${name} stays. The village has a ${kind} now — and the dark has one more thing to think about.`, 'disc', [HX, HY]);
+        discover('pet');
+        sfx('chime');
+      } },
+      { n: 'Shoo it off', d: 'Another mouth is another mouth.', fn() { log('It melts back into the treeline. Some nights you still see its eyes — the warm kind.'); } },
+    ]);
+}
+function updatePet(dtDays) {
+  const p = G.pet;
+  if (!p) return;
+  // it eats a little, quietly, from the stores
+  if (G.res.food > 0.5) { G.res.food -= 0.3 * dtDays; p.hungry = 0; }
+  else p.hungry = (p.hungry || 0) + dtDays;
+  // it trails the children, the fire, whoever is interesting
+  p.wait -= dtDays;
+  if (p.wait <= 0 || p.dx == null) {
+    p.wait = 0.05 + Math.random() * 0.12;
+    const kids2 = G.villagers.filter(v => v.age < ADULT_AGE);
+    const target = kids2.length && Math.random() < 0.5 ? choice(kids2)
+      : Math.random() < 0.5 && pop() ? choice(G.villagers) : null;
+    const tx = target ? target.x : HX + 0.5, ty = target ? target.y : HY + 0.5;
+    p.dx = clamp(tx + (Math.random() - 0.5) * 3, 2, W - 2);
+    p.dy = clamp(ty + (Math.random() - 0.5) * 3, 2, H - 2);
+  }
+  const dx = p.dx - p.x, dy = p.dy - p.y;
+  const dd = Math.hypot(dx, dy);
+  if (dd > 0.15) {
+    const step = Math.min(dd, 160 * dtDays);
+    const nx = p.x + dx / dd * step, ny = p.y + dy / dd * step;
+    if (G.tiles[idx(clamp(Math.floor(nx), 0, W - 1), clamp(Math.floor(ny), 0, H - 1))].t !== 'water' || isWinter()) { p.x = nx; p.y = ny; }
+    else { p.dx = null; }
+  }
+}
+function updatePetDaily() {
+  const p = G.pet;
+  if (!p) return;
+  if ((p.hungry || 0) > 3) {
+    log(`${p.kind === 'dog' ? '🐕' : '🐈'} ${p.name} waited at the empty stores for three days, then walked into the dark without looking back.`, 'death', [Math.floor(p.x), Math.floor(p.y)]);
+    G.pet = null;
+  }
+}
+
+/* ---------- the old world, half-swallowed: landmark discovery ---------- */
+function checkLandmarks() {
+  const want = [['road', 'lm_road'], ['pylon', 'lm_pylon'], ['derrick', 'lm_derrick'], ['hulk', 'lm_hulk']];
+  if (want.every(([, l]) => G.lore.includes(l) || G.flags['no_' + l])) return;
+  for (const [tt, loreId] of want) {
+    if (G.lore.includes(loreId) || G.flags['no_' + loreId]) continue;
+    let found = null;
+    for (let y = 0; y < H && !found; y++) for (let x = 0; x < W; x++) {
+      if (G.tiles[idx(x, y)].t === tt) { found = [x, y]; break; }
+    }
+    if (!found) { G.flags['no_' + loreId] = true; continue; }    // not on this map at all
+    if (isLit(found[0], found[1])) discover(loreId, found);
+  }
+}
+
 /* ---------- happiness, seasons, years, days ---------- */
 function updateHappiness() {
   if (pop() === 0) { G.happy = 50; return; }
@@ -1668,6 +1829,7 @@ function updateHappiness() {
   if (G.form && G.form.id === 'temple') h += G.form.tier > 1 ? 10 : 6;
   if (G.leader && G.leader.focus === 'keeper') h += 6;
   if (G.leader && G.leader.focus === 'broker') h -= 4;
+  if (G.pet) h += 4;                                   // someone warm who asks for nothing
   if (evActive('minstrel')) h += 10;
   if (evActive('howling')) h -= 6;
   if (G.monsters.length) h -= 4;
@@ -1689,7 +1851,24 @@ function onNewSeason(s, dayIndex) {
       if (!(has('frostgrain') && b.phase === 'harvest' && b.crop > 0)) { b.phase = 'fallow'; b.growth = 0; b.prog = 0; }
     }
   }
-  if (yearNum() >= 2 && Math.random() < 0.25) visitorEvent();
+  // mercy of the flame: if no ember source is left within reach and the stores are dry,
+  // the fire itself spits out a living coal once in a while. Slow, but never stuck.
+  if (G.res.ember < hearthCost() && G.hearth.level < 8 && !G.builds.some(b => b.type === 'kiln' && b.built)) {
+    let sources = 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const t = tile(x, y);
+      if ((t.t === 'ancient' || t.t === 'ruin' || t.t === 'derrick') && t.amt > 0 && isLit(x, y)) sources++;
+    }
+    if (sources === 0) {
+      addRes('ember', 1);
+      log('✨ The fire spits out a living coal that does not cool. The old folk say it does this when it knows you have nowhere else to look.', 'ember', [HX, HY]);
+    }
+  }
+  // the village dog (or cat) finds you, once, when the village is young
+  if (!G.pet && !G.flags.petOffered && yearNum() >= 2) {
+    G.flags.petOffered = true;
+    offerPet();
+  } else if (yearNum() >= 2 && Math.random() < 0.25) visitorEvent();
   else if (Math.random() < 0.30) {
     const pool = EVENTS.filter(e => e.seasons.includes(s));
     if (pool.length) {
@@ -1729,7 +1908,13 @@ function onNewYear() {
   G.warnedFloor = false;
   for (const v of [...G.villagers]) {
     v.age += 1;
-    if (Math.abs(v.age - ADULT_AGE) < 0.01) log(`${v.name} ${v.family} has come of age, and takes up work.`);
+    if (Math.abs(v.age - ADULT_AGE) < 0.01) {
+      // children take up their parents' trade, given any choice in the matter
+      const par = helperParent(v) || (v.mom != null ? G.villagers.find(o => o.id === v.mom) : null);
+      const pb = par && par.job != null ? byId(par.job) : null;
+      if (pb) v.parentJobType = pb.type;
+      log(`${v.name} ${v.family} has come of age, and takes up work${pb ? ` — drawn to the ${BUILDS[pb.type].name.toLowerCase()}, like family before` : ''}.`);
+    }
     if (v.age > 18 && Math.random() < (v.age - 18) * 0.06) kill(v, 'died, old and warm, beside the fire');
   }
   G.homesDirty = true;
@@ -1761,8 +1946,12 @@ function onNewDay(n) {
   }
   farmDaily();
   processDebts();
+  updatePetDaily();
+  checkLandmarks();
   if (G.homesDirty) assignHomes();
   assignJobs();
+  G.jobChangesPrev = G.jobChangesToday || 0;
+  G.jobChangesToday = 0;
   // the trader's appetites drift back toward even
   if (G.trader.market) for (const r of Object.keys(G.trader.market))
     G.trader.market[r] += (1 - G.trader.market[r]) * 0.04;
@@ -1923,7 +2112,6 @@ function tryPlace(type, x, y) {
   log(`Scaffolding rises for a ${BUILDS[type].name}.`, '', [x, y]);
   discover('construction', [x, y]);
   assignJobs();
-  if (!BUILDS[type].slots) buildMode = null;
   sfx('click');
   uiDirty = true;
 }
@@ -1968,6 +2156,7 @@ function tick(dtDays) {
   updateFire(dtDays);
   updateMonsters(dtDays);
   updateTrader(dtDays);
+  updatePet(dtDays);
   familyStep();
   conceptions(dtDays);
   gestate(dtDays);
@@ -1991,11 +2180,11 @@ function tick(dtDays) {
     if (G.gloom > 5) { leaveOne('slipped quietly into the mist'); G.gloom = 2; }
   }
 
-  // idle hands look for work mid-day too, not just at dawn
+  // every half day the whole queue is re-checked, no matter what
   G.jobTimer = (G.jobTimer || 0) + dtDays;
   if (G.jobTimer > 0.5) {
     G.jobTimer = 0;
-    if (adults().some(v => v.job == null && canWork(v))) assignJobs();
+    assignJobs();
   }
 
   const d = Math.floor(G.day);
@@ -2021,7 +2210,7 @@ function newGame(seedStr) {
     happy: 60, starve: 0, gloom: 0, warnedFloor: false, homesDirty: true,
     crowded: 0, homeless: 0, mourning: 0,
     villagers: [], builds: [], monsters: [],
-    trader: { state: 'away', next: 18 + Math.random() * 16, x: 0, y: 0 },
+    trader: { state: 'away', next: 9 + Math.random() * 6, x: 0, y: 0 },
     siege: null, won: false, moodTier: 2, logRead: 0,
     flow: {}, flowPrev: {},
     log: [],
@@ -2029,15 +2218,17 @@ function newGame(seedStr) {
     wear: new Array(W * H).fill(0),
   };
   rebuildOcc();
-  const f1 = choice(SURNAMES), f2 = choice(SURNAMES.filter(s => s !== f1));
-  const a = spawnVillager({ family: f1, sex: 'f' }), b = spawnVillager({ family: f1, sex: 'm' });
-  a.spouse = b.id; b.spouse = a.id; a.bearer = true;
-  const c = spawnVillager({ family: f2, sex: 'm' }), d = spawnVillager({ family: f2, sex: 'f' });
-  c.spouse = d.id; d.spouse = c.id; d.bearer = true;
-  spawnVillager(); spawnVillager();
+  // three pairs — six of you — out the service gate before dawn, off the registry
+  const fams = [];
+  while (fams.length < 3) { const s = choice(SURNAMES); if (!fams.includes(s)) fams.push(s); }
+  for (const fam of fams) {
+    const a = spawnVillager({ family: fam, sex: 'f' }), b = spawnVillager({ family: fam, sex: 'm' });
+    a.spouse = b.id; b.spouse = a.id; a.bearer = true;
+  }
   G.biome = biomeOf(seedStr);
-  log('Six travellers light a great fire in the dark wood. The Hearth is born.');
+  log('Three pairs — six souls who trusted each other enough to run — light a fire in the unmapped wood. The Hearth is born, and the registry will never find it.');
   log(`This is ${BIOMES[G.biome].name} — ${BIOMES[G.biome].blurb}.`);
+  discover('theflight');
   discover('fire-hunger');
   assignHomes(); assignJobs();
   buildMode = null; selected = null; uiMode = null;

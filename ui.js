@@ -6,6 +6,20 @@
 const $ = id => document.getElementById(id);
 const canvas = $('game');
 const ctx = canvas.getContext('2d');
+/* older Safari and Edge lack roundRect — without this, one draw call
+   kills the frame loop and the whole world freezes mid-flame */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.min(typeof r === 'number' ? r : 4, w / 2, h / 2);
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    this.closePath();
+    return this;
+  };
+}
 let cam = { x: 0, y: 0, z: 2.6 };
 let zoomTarget = 2.6, zoomAnchor = null;
 let mouse = { x: 0, y: 0, down: false, dragged: false, sx: 0, sy: 0 };
@@ -283,6 +297,7 @@ function refreshUI() {
 
 /* the chronicle panel: chronicle, lore, ledger and help share one book */
 function refreshChron() {
+  if (chronTab === 'ledger' && (!G || !G.leader)) chronTab = 'chron';   // no leader, no ledger — ever
   $('chrondate').textContent = G ? `${vagueDate(G.day)} ${['🌸', '☀️', '🍂', '❄️'][season()]}` : '';
   for (const t of document.querySelectorAll('#chrontabs .tab')) t.classList.toggle('active', t.dataset.tab === chronTab);
   $('loglist').classList.toggle('hidden', chronTab !== 'chron');
@@ -330,6 +345,22 @@ function refreshChron() {
     html +=
       `<div class="lrow"><span>People</span><span>${adults().length} grown · ${kids} young${preg ? ` · ${preg} expecting` : ''}</span></div>` +
       `<div class="lrow"><span>Housing</span><span>${pop()}/${housingCap()}${G.crowded ? ` · ${G.crowded} crowded` : ''}${G.homeless ? ` · ${G.homeless} cold` : ''}</span></div>`;
+    {
+      // the working of the village, post by post
+      const able = G.villagers.filter(v => canWork(v));
+      const working = able.filter(v => v.job != null).length;
+      const totalSlots = G.builds.reduce((s, b) => {
+        if (!b.built && !b.halt) return s + 2;
+        if (!b.built || b.halt || !workplaceViable(b)) return s;
+        let n = slotsOf(b);
+        if (b.maxCrew != null) n = Math.min(n, b.maxCrew);
+        return s + n;
+      }, 0);
+      html +=
+        `<div class="lrow"><span>Open posts</span><span>${Math.max(0, totalSlots - working)}</span></div>` +
+        `<div class="lrow"><span>Without work</span><span>${able.length - working}</span></div>` +
+        `<div class="lrow"><span>Posts changed yesterday</span><span>${G.jobChangesPrev || 0}</span></div>`;
+    }
     if (G.trader.market && G.seen.coin) {
       const m = r => market(r) > 1.15 ? 'dear' : market(r) < 0.85 ? 'cheap' : 'fair';
       html += `<div class="lrow"><span>Trader's mood</span><span>${Object.keys(TRADE_GOODS).filter(r => r === 'food' || r === 'wood' || G.seen[r]).map(r => `${RES_ICON[r]}${m(r)}`).join(' ')}</span></div>`;
@@ -484,7 +515,7 @@ function focusCam(x, y) {
 }
 const toWorld = (mx, my) => [(mx - cam.x) / cam.z / TILE, (my - cam.y) / cam.z / TILE];
 
-function handleTap(mx, my) {
+function handleTap(mx, my, shiftHeld) {
   if (!G || modalOpen) return;
   const [wx, wy] = toWorld(mx, my);
   const x = Math.floor(wx), y = Math.floor(wy);
@@ -498,7 +529,13 @@ function handleTap(mx, my) {
     } else setStatus('Too far from the building, or outside the light.');
     return;
   }
-  if (buildMode) { tryPlace(buildMode, x, y); return; }
+  if (buildMode) {
+    // one click, one building — hold shift to keep placing (desktop only)
+    const before = G.builds.length;
+    tryPlace(buildMode, x, y);
+    if (G.builds.length > before && !shiftHeld) { buildMode = null; uiDirty = true; }
+    return;
+  }
   if (x === HX && y === HY) { stoke(); return; }
   const b = buildAt(x, y);
   const alreadyThis = b && selected && selected.kind === 'build' && selected.id === b.id;
@@ -523,7 +560,7 @@ window.addEventListener('mouseup', e => {
   if (e.button !== 0 || !mouse.down) return;
   mouse.down = false;
   if (mouse.dragged) return;
-  handleTap(mouse.x, mouse.y);
+  handleTap(mouse.x, mouse.y, e.shiftKey);
 });
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
@@ -704,10 +741,11 @@ function updateCritters(dt) {
     // hunters actually hunt: a working hunter nearby looses an arrow
     for (const v of G.villagers) {
       const d = Math.hypot(v.x - c.x, v.y - c.y);
-      if (v.state === 'work' && v.job != null && byId(v.job)?.type === 'hunter' && d < 4.5 && d > 1 && Math.random() < dt * 0.8) {
+      if (v.state === 'work' && v.job != null && byId(v.job)?.type === 'hunter' && d < 4.5 && d > 1 && !v.carry && Math.random() < dt * 0.8) {
         arrows.push({ x1: v.x, y1: v.y - 0.3, x2: c.x, y2: c.y, t: 0 });
         c.life = Math.min(c.life, 0.18);
         c.shot = true;
+        v.carry = { x: c.x, y: c.y, got: false };     // one shot, then carry it home
         sfx('chop');
         break;
       }
@@ -718,9 +756,21 @@ function updateCritters(dt) {
   for (const a of arrows) a.t += dt * 6;
   for (let i = arrows.length - 1; i >= 0; i--) if (arrows[i].t >= 1.3) arrows.splice(i, 1);
 }
+const chips = [];
 function updateParticles(dt) {
   updateCritters(dt);
   const now = performance.now();
+  // stone chips fly where picks are working
+  if (G && chips.length < 14 && Math.random() < dt * 3) {
+    for (const b of G.builds) {
+      if (b.type !== 'quarry' || !b.built || b.tx == null) continue;
+      if (!G.villagers.some(v => v.job === b.id && v.state === 'work')) continue;
+      chips.push({ x: b.tx % W + 0.5, y: Math.floor(b.tx / W) + 0.4, vx: (Math.random() - 0.5) * 2.4, vy: -(1 + Math.random()), life: 0.6 });
+      break;
+    }
+  }
+  for (const c of chips) { c.x += c.vx * dt; c.y += c.vy * dt; c.vy += dt * 5; c.life -= dt; }
+  for (let i = chips.length - 1; i >= 0; i--) if (chips[i].life <= 0) chips.splice(i, 1);
   if (G && G.fire.lit && sparks.length < 26 && Math.random() < 0.5) {
     sparks.push({ x: HX + 0.5 + (Math.random() - 0.5) * 0.6, y: HY + 0.4, vy: -(0.8 + Math.random()), vx: (Math.random() - 0.5) * 0.4, life: 1 });
   }
@@ -757,7 +807,7 @@ const BIOME_STYLE = {
   meadow:     { grass: ['#2d3b1e', '#33401d', '#3b3c1c', '#4f5760'], water: '#17354c' },
 };
 const bstyle = () => BIOME_STYLE[G.biome] || BIOME_STYLE.heartwood;
-const TILE_BG = { tree: '#222f1c', berry: '#27331f', stone: '#33363c', ruin: '#2b2a33', ancient: '#1c332c' };
+const TILE_BG = { tree: '#222f1c', berry: '#27331f', stone: '#33363c', ruin: '#2b2a33', ancient: '#1c332c', road: '#3c3c42', pylon: '#2b3326', derrick: '#332f2a', hulk: '#2f3328' };
 const tHash = (x, y) => ((x * 73856093) ^ (y * 19349663)) >>> 0;
 
 function hexLerp(a, b, t) {
@@ -1045,9 +1095,53 @@ function drawVillager(v, now) {
     ctx.strokeStyle = '#e8e0d0'; ctx.lineWidth = 0.8;
     ctx.beginPath(); ctx.moveTo(bx + 1.5, by + 2); ctx.lineTo(bx + 3.5, by - 4.5); ctx.stroke();
   }
+  if (v.carry && v.carry.got) {
+    // the day's kill over the shoulder
+    ctx.fillStyle = '#7a5a40';
+    ctx.beginPath(); ctx.ellipse(bx - r * 0.9, by - r * 0.8, 1.4, 0.9, -0.4, 0, 7); ctx.fill();
+  }
   if (selected && selected.kind === 'vill' && selected.id === v.id) {
     ctx.strokeStyle = '#f0a843'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(px, py, r + 2.4, 0, 7); ctx.stroke();
+  }
+}
+
+/* the village animal — every one its own colors */
+function drawPet(p, now) {
+  const px = p.x * TILE, py = p.y * TILE;
+  const moving = p.dx != null && Math.hypot(p.dx - p.x, p.dy - p.y) > 0.25;
+  const trot = moving ? Math.sin(now / 80) * 0.5 : 0;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(px, py + 1.6, 2.6, 0.9, 0, 0, 7); ctx.fill();
+  // body
+  ctx.fillStyle = p.c1;
+  ctx.beginPath(); ctx.ellipse(px, py + trot * 0.3, 2.6, 1.5, 0, 0, 7); ctx.fill();
+  // patch
+  ctx.fillStyle = p.c2;
+  ctx.beginPath(); ctx.ellipse(px - 0.8, py - 0.2, 1.2, 0.9, 0, 0, 7); ctx.fill();
+  // head
+  ctx.fillStyle = p.c1;
+  ctx.beginPath(); ctx.arc(px + 2.2, py - 0.8, 1.3, 0, 7); ctx.fill();
+  // ears: floppy for the dog, sharp for the cat
+  if (p.kind === 'dog') {
+    ctx.fillStyle = p.c2;
+    ctx.beginPath(); ctx.ellipse(px + 1.6, py - 1.7, 0.5, 0.9, -0.5, 0, 7); ctx.fill();
+  } else {
+    ctx.fillStyle = p.c1;
+    ctx.beginPath();
+    ctx.moveTo(px + 1.5, py - 1.6); ctx.lineTo(px + 1.8, py - 2.7); ctx.lineTo(px + 2.3, py - 1.8);
+    ctx.moveTo(px + 2.5, py - 1.8); ctx.lineTo(px + 3, py - 2.6); ctx.lineTo(px + 3.2, py - 1.5);
+    ctx.fill();
+  }
+  // the tail never lies
+  ctx.strokeStyle = p.c1; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
+  const wag = Math.sin(now / (p.kind === 'dog' ? 120 : 400)) * (p.kind === 'dog' ? 0.9 : 0.4);
+  ctx.beginPath(); ctx.moveTo(px - 2.4, py - 0.2);
+  ctx.quadraticCurveTo(px - 3.6, py - 1.2 + wag, px - 3.4 + wag * 0.4, py - 2.2 + wag);
+  ctx.stroke();
+  if (selected && selected.kind === 'pet') {
+    ctx.strokeStyle = '#f0a843'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(px, py, 4.4, 0, 7); ctx.stroke();
   }
 }
 
@@ -1114,6 +1208,16 @@ function draw() {
     return false;
   };
 
+  // who is touching what right now — the world reacts to hands on it
+  const activeTiles = new Set(), busyCrews = new Set();
+  for (const v of G.villagers) {
+    if (v.state !== 'work' || v.job == null) continue;
+    const b = byId(v.job);
+    if (!b) continue;
+    busyCrews.add(b.id);
+    if (b.tx != null && GATHER_KINDS[b.type]) activeTiles.add(b.tx);
+  }
+
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
     if (!litDraw(x, y)) continue;
     const t = tile(x, y);
@@ -1135,9 +1239,10 @@ function draw() {
     }
 
     const jx = ((h >> 3) % 3) - 1, jy = ((h >> 5) % 3) - 1;
+    const shake = activeTiles.has(idx(x, y)) ? Math.sin(now / 55 + x * 3) * 0.7 : 0;
     if (t.t === 'tree' && t.amt > 0) {
       const r = (2 + (t.amt / 10) * 3.5) * (0.85 + ((h >> 7) % 4) * 0.08);
-      const cx2 = px + 8 + jx, cy2 = py + 7 + jy;
+      const cx2 = px + 8 + jx + shake, cy2 = py + 7 + jy;
       ctx.fillStyle = '#54401f'; ctx.fillRect(cx2 - 0.8, cy2 + 1, 1.6, 5);
       ctx.fillStyle = winter ? ['#36503c', '#324a38', '#3a5440'][h % 3] : ['#3a5c2e', '#42662f', '#37552c', '#456b33'][h % 4];
       ctx.beginPath(); ctx.arc(cx2, cy2, r, 0, 7); ctx.fill();
@@ -1154,7 +1259,7 @@ function draw() {
       ctx.beginPath(); ctx.arc(px + 8, py + 7, 2, 0, 7); ctx.fill();
     } else if (t.t === 'berry') {
       ctx.fillStyle = ['#3a5c2e', '#34532a', '#406432'][h % 3];
-      ctx.beginPath(); ctx.arc(px + 8 + jx, py + 9 + jy, 3.4 + (h % 3) * 0.5, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(px + 8 + jx + shake, py + 9 + jy, 3.4 + (h % 3) * 0.5, 0, 7); ctx.fill();
       ctx.fillStyle = t.amt > 1 ? '#c2455a' : '#5b4248';
       ctx.beginPath();
       ctx.arc(px + 6 + jx, py + 8 + jy, 1.2, 0, 7); ctx.arc(px + 10 + jx, py + 7 + jy, 1.2, 0, 7); ctx.arc(px + 8 + jx, py + 11 + jy, 1.2, 0, 7);
@@ -1182,23 +1287,71 @@ function draw() {
         ctx.fillStyle = 'rgba(255,255,255,0.035)';
         ctx.fillRect(px + 3 + Math.sin(now / 1600 + x * 0.7 + y) * 1.2, py + 5 + (h % 5), 5, 1);
         if (t.fish && t.amt > 3) {
-          const ph2 = ((now / 1700) + (h % 9) / 9) % 1;
-          if (ph2 < 0.45) {
-            ctx.strokeStyle = `rgba(220,240,255,${0.3 * (1 - ph2 / 0.45)})`;
-            ctx.lineWidth = 0.8;
-            ctx.beginPath(); ctx.arc(px + 8 + jx, py + 8 + jy, 1.5 + ph2 * 9, 0, 7); ctx.stroke();
+          // a quiet ring now and then; nothing showy
+          const ph2 = ((now / 2800) + (h % 9) / 9) % 1;
+          if (ph2 < 0.3) {
+            ctx.strokeStyle = `rgba(220,240,255,${0.16 * (1 - ph2 / 0.3)})`;
+            ctx.lineWidth = 0.7;
+            ctx.beginPath(); ctx.arc(px + 8 + jx, py + 8 + jy, 1.5 + ph2 * 8, 0, 7); ctx.stroke();
           }
-          if (ph2 > 0.7 && ph2 < 0.78) {
-            ctx.strokeStyle = 'rgba(200,220,235,0.7)'; ctx.lineWidth = 1.1;
-            ctx.beginPath(); ctx.arc(px + 8 + jx, py + 6 + jy, 2.4, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+          if (ph2 > 0.74 && ph2 < 0.78) {
+            ctx.strokeStyle = 'rgba(200,220,235,0.45)'; ctx.lineWidth = 0.9;
+            ctx.beginPath(); ctx.arc(px + 8 + jx, py + 6 + jy, 2.2, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
           }
         }
+        // a line being worked stirs the surface
+        if (activeTiles.has(idx(x, y))) {
+          const ph3 = (now / 900) % 1;
+          ctx.strokeStyle = `rgba(220,240,255,${0.3 * (1 - ph3)})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.arc(px + 8, py + 8, 1 + ph3 * 6, 0, 7); ctx.stroke();
+        }
       }
+    } else if (t.t === 'road') {
+      // cracked black stone, too straight for nature
+      ctx.strokeStyle = 'rgba(20,20,24,0.5)'; ctx.lineWidth = 0.7;
+      ctx.beginPath(); ctx.moveTo(px + 2 + (h % 4), py + 3); ctx.lineTo(px + 8 + (h % 5), py + 13); ctx.stroke();
+      ctx.fillStyle = 'rgba(150,180,90,0.18)';
+      ctx.fillRect(px + (h % 12), py + ((h >> 4) % 12), 2, 2);          // moss reclaiming it
+      ctx.strokeStyle = 'rgba(200,190,120,0.12)';
+      ctx.beginPath(); ctx.moveTo(px, py + 8); ctx.lineTo(px + 4, py + 8); ctx.stroke();   // a ghost of lane paint
+    } else if (t.t === 'pylon') {
+      ctx.strokeStyle = '#6e4a38'; ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(px + 4, py + 14); ctx.lineTo(px + 8, py - 6); ctx.lineTo(px + 12, py + 14);
+      ctx.moveTo(px + 5.2, py + 8); ctx.lineTo(px + 10.8, py + 8);
+      ctx.moveTo(px + 6, py + 2); ctx.lineTo(px + 10, py + 2);
+      ctx.moveTo(px + 5, py - 3); ctx.lineTo(px + 11, py - 3);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(110,74,56,0.6)';
+      ctx.fillRect(px + 3, py - 4, 2, 1.4); ctx.fillRect(px + 11, py - 4, 2, 1.4);
+    } else if (t.t === 'derrick') {
+      ctx.fillStyle = 'rgba(15,12,10,0.5)';
+      ctx.beginPath(); ctx.ellipse(px + 8, py + 12, 6, 2.5, 0, 0, 7); ctx.fill();   // the old stain
+      ctx.strokeStyle = '#7a5240'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(px + 4, py + 13); ctx.lineTo(px + 8, py - 2); ctx.lineTo(px + 12, py + 13);
+      ctx.moveTo(px + 5.5, py + 7); ctx.lineTo(px + 10.5, py + 7);
+      ctx.stroke();
+      if (t.amt > 0) {
+        ctx.fillStyle = `rgba(255,140,60,${0.25 + 0.15 * Math.sin(now / 700 + h)})`;
+        ctx.fillRect(px + 6.8, py + 10, 2.4, 2.4);                       // still warm underneath
+      }
+    } else if (t.t === 'hulk') {
+      ctx.fillStyle = '#6e4a38';
+      ctx.beginPath(); ctx.roundRect(px + 2, py + 6, 12, 7, 2); ctx.fill();
+      ctx.fillStyle = '#5a3c2e';
+      ctx.beginPath(); ctx.roundRect(px + 4, py + 3, 8, 5, 2); ctx.fill();
+      ctx.fillStyle = '#1c1c22';
+      ctx.fillRect(px + 5, py + 4.5, 2.4, 2.4); ctx.fillRect(px + 8.6, py + 4.5, 2.4, 2.4);   // dark windows
+      ctx.fillStyle = '#2a2a30';
+      ctx.beginPath(); ctx.arc(px + 4.5, py + 13, 1.6, 0, 7); ctx.arc(px + 11.5, py + 13, 1.6, 0, 7); ctx.fill();
     }
   }
 
-  // worn paths: lean roads that pool into little plazas where they meet
+  // worn paths: lean single roads — and where life truly converges, a full trodden plaza
   ctx.lineCap = 'round';
+  const plazas = [];
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
     const wr = G.wear[idx(x, y)];
     if (wr < 4 || !litDraw(x, y)) continue;
@@ -1209,11 +1362,6 @@ function draw() {
     }
     const cxp = x * TILE + 8, cyp = y * TILE + 8;
     const strong = wr >= 12;
-    if (nWorn >= 3) {
-      // a crossroads becomes a small trodden square
-      ctx.fillStyle = strong ? 'rgba(146,116,80,0.8)' : 'rgba(122,100,74,0.45)';
-      ctx.beginPath(); ctx.roundRect(x * TILE + 1.5, y * TILE + 1.5, TILE - 3, TILE - 3, 4); ctx.fill();
-    }
     ctx.strokeStyle = strong ? 'rgba(146,116,80,0.85)' : 'rgba(122,100,74,0.5)';
     ctx.lineWidth = strong ? 3.4 : 2;
     let linked = false;
@@ -1226,6 +1374,19 @@ function draw() {
       }
     }
     if (!linked && nWorn === 0) { ctx.beginPath(); ctx.arc(cxp, cyp, ctx.lineWidth * 0.7, 0, 7); ctx.fillStyle = ctx.strokeStyle; ctx.fill(); }
+    // a true plaza is rare: deeply worn AND a real crossroads
+    if (wr >= 14 && nWorn >= 3) plazas.push([x, y]);
+  }
+  // plazas swallow their whole tile — packed earth, edge to edge, no grass seams
+  for (const [x, y] of plazas) {
+    const px = x * TILE, py = y * TILE;
+    const h = tHash(x, y);
+    ctx.fillStyle = '#8a7050';
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.fillRect(px + (h % 7), py + ((h >> 3) % 7), 3, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(px + ((h >> 5) % 10), py + ((h >> 7) % 10), 2, 2);
   }
 
   // light edge rings
@@ -1248,6 +1409,10 @@ function draw() {
     const popScale = b.built && age < 0.15 ? 0.7 + (age / 0.15) * 0.3 : 1;
     ctx.save();
     if (popScale < 1) { ctx.translate(px + 8, py + 8); ctx.scale(popScale, popScale); ctx.translate(-px - 8, -py - 8); }
+    if (!b.built && busyCrews.has(b.id)) {
+      // hammers shake the scaffold
+      ctx.translate(Math.sin(now / 45 + b.id) * 0.5, Math.cos(now / 60 + b.id) * 0.3);
+    }
     if (!b.built) {
       ctx.strokeStyle = 'rgba(200,180,140,0.6)'; ctx.lineWidth = 1;
       ctx.strokeRect(px + 2, py + 2, TILE - 4, TILE - 4);
@@ -1361,6 +1526,11 @@ function draw() {
     ctx.fillStyle = `rgba(255,${160 + Math.floor(sp.life * 60)},60,${sp.life * 0.8})`;
     ctx.fillRect(sp.x * TILE, sp.y * TILE, 1.2, 1.2);
   }
+  for (const c of chips) {
+    ctx.fillStyle = `rgba(170,178,188,${c.life * 1.4})`;
+    ctx.fillRect(c.x * TILE, c.y * TILE, 1.3, 1.3);
+  }
+  if (G.pet) drawPet(G.pet, now);
 
   // the Hearth — its blaze IS the gauge
   {
@@ -1463,32 +1633,57 @@ function traderRows() {
 /* ---------- frame loop & boot ---------- */
 let lastT = performance.now();
 let uiTimer = 0, saveTimer = 0;
-function frame(t) {
-  const dt = Math.min(0.1, (t - lastT) / 1000);
-  lastT = t;
-  if (G && !modalOpen && G.speed > 0) tick(dt / SEC_PER_DAY * G.speed);
-  if (G) {
-    lightAnim = lerp(lightAnim, effLight(), Math.min(1, dt * 1.6));
-    // glide the zoom
-    zoomTarget = clamp(zoomTarget, minZoom(), 4);
-    if (Math.abs(cam.z - zoomTarget) > 0.0005) {
-      const nz = lerp(cam.z, zoomTarget, Math.min(1, dt * 9));
-      const ax = zoomAnchor ? zoomAnchor[0] : window.innerWidth / 2;
-      const ay = zoomAnchor ? zoomAnchor[1] : window.innerHeight / 2;
-      const real = nz / cam.z;
-      cam.x = ax - (ax - cam.x) * real;
-      cam.y = ay - (ay - cam.y) * real;
-      cam.z = nz;
-    }
-    updateParticles(dt);
-    ambientUpdate(dt, t);
-    if (statusTimer > 0) { statusTimer -= dt; if (statusTimer <= 0) $('statusbar').textContent = ''; }
+let lastToastSeq = 0;
+function pushToasts() {
+  if (!G) return;
+  if (lastToastSeq === 0) { lastToastSeq = G.logSeq || 0; return; }   // don't replay history on load
+  if ((G.logSeq || 0) <= lastToastSeq) return;
+  const fresh = Math.min(2, (G.logSeq || 0) - lastToastSeq);
+  lastToastSeq = G.logSeq || 0;
+  if (!$('chronpanel').classList.contains('hidden')) return;          // the open book shows them itself
+  const wrap = $('toasts');
+  for (let i = fresh - 1; i >= 0; i--) {
+    const e = G.log[i];
+    if (!e) continue;
+    const el = document.createElement('div');
+    el.className = 'toast ' + (e.cls === 'death' ? 'death' : e.cls === 'ember' ? 'ember' : '');
+    el.innerHTML = `<span class="tdate">${vagueDate(e.d)}</span><br>${e.msg.length > 110 ? e.msg.slice(0, 108) + '…' : e.msg}`;
+    wrap.appendChild(el);
+    while (wrap.children.length > 3) wrap.firstChild.remove();
+    setTimeout(() => { el.classList.add('gone'); setTimeout(() => el.remove(), 650); }, 3600);
   }
-  draw();
-  uiTimer += dt; saveTimer += dt;
-  if (uiDirty || uiTimer > 0.25) { refreshUI(); uiDirty = false; uiTimer = 0; }
-  else if (selected) refreshBubble();             // the bubble tracks its target every frame
-  if (saveTimer > 15) { saveTo('auto'); saveTimer = 0; }
+}
+function frame(t) {
+  try {
+    const dt = Math.min(0.1, (t - lastT) / 1000);
+    lastT = t;
+    if (G && !modalOpen && G.speed > 0) tick(dt / SEC_PER_DAY * G.speed);
+    if (G) {
+      lightAnim = lerp(lightAnim, effLight(), Math.min(1, dt * 1.6));
+      zoomTarget = clamp(zoomTarget, minZoom(), 4);
+      if (Math.abs(cam.z - zoomTarget) > 0.0005) {
+        const nz = lerp(cam.z, zoomTarget, Math.min(1, dt * 9));
+        const ax = zoomAnchor ? zoomAnchor[0] : window.innerWidth / 2;
+        const ay = zoomAnchor ? zoomAnchor[1] : window.innerHeight / 2;
+        const real = nz / cam.z;
+        cam.x = ax - (ax - cam.x) * real;
+        cam.y = ay - (ay - cam.y) * real;
+        cam.z = nz;
+      }
+      updateParticles(dt);
+      ambientUpdate(dt, t);
+      pushToasts();
+      if (statusTimer > 0) { statusTimer -= dt; if (statusTimer <= 0) $('statusbar').textContent = ''; }
+    }
+    draw();
+    uiTimer += dt; saveTimer += dt;
+    if (uiDirty || uiTimer > 0.25) { refreshUI(); uiDirty = false; uiTimer = 0; }
+    else if (selected) refreshBubble();
+    if (saveTimer > 15) { saveTo('auto'); saveTimer = 0; }
+  } catch (err) {
+    // one bad frame must never freeze the world
+    console.error('frame error:', err);
+  }
   requestAnimationFrame(frame);
 }
 function randomSeed() {
@@ -1529,6 +1724,8 @@ $('continuebtn').onclick = () => {
   if (loadFrom('auto')) {
     hideModal('intromodal');
     buildBuildMenu(); centerCam(false); lightAnim = effLight(); zoomTarget = cam.z;
+    chronTab = 'chron';
+    lastToastSeq = 0;
     uiDirty = true;
   }
 };
@@ -1544,6 +1741,9 @@ $('beginbtn').onclick = () => {
   hideModal('intromodal');
   newGame(s);
   zoomTarget = cam.z;
+  chronTab = 'chron';
+  lastToastSeq = 0;
+  $('chronpanel').classList.add('hidden');
   saveTo('auto');
 };
 $('slotrows').addEventListener('click', e => {
@@ -1574,35 +1774,58 @@ $('importbtn').onclick = async () => {
 window.addEventListener('beforeunload', () => saveTo('auto'));
 window.addEventListener('resize', () => { resize(); uiDirty = true; });
 
-/* the trader's bubble: select the wagon by tapping it */
+/* tapping the wagon or the village animal opens their own bubbles */
 const _origTap = handleTap;
-handleTap = function (mx, my) {
-  if (G && G.trader.state === 'here' && !buildMode && !uiMode) {
+handleTap = function (mx, my, shiftHeld) {
+  if (G && !buildMode && !uiMode) {
     const [wx, wy] = toWorld(mx, my);
-    if (Math.hypot(wx - G.trader.x, wy - G.trader.y) < 1.4) {
+    if (G.trader.state === 'here' && Math.hypot(wx - G.trader.x, wy - G.trader.y) < 1.4) {
       selected = { kind: 'trader' };
       uiDirty = true;
       return;
     }
+    if (G.pet && Math.hypot(wx - G.pet.x, wy - G.pet.y) < 0.9) {
+      selected = { kind: 'pet' };
+      uiDirty = true;
+      return;
+    }
   }
-  _origTap(mx, my);
+  _origTap(mx, my, shiftHeld);
 };
+function petThought(p) {
+  const lines = p.kind === 'dog'
+    ? ['Woof. (The treeline is handled.)', 'Someone dropped a fish once. A dog remembers.', 'The small humans are mine now. I have decided.', 'The dark smells like wire. I do not like wire.']
+    : ['The woodpile is mine. The fire is mine. You may stay.', 'I have inspected the dark. It blinked first.', 'Mrr. (Translation withheld.)', 'The things out there have no heartbeat. Unacceptable.'];
+  return lines[(Math.floor(G.day) + p.name.length) % lines.length];
+}
 const _origBubbleTarget = bubbleTarget;
 bubbleTarget = function () {
   if (selected && selected.kind === 'trader') {
     if (G.trader.state !== 'here') { selected = null; return null; }
     return [G.trader.x, G.trader.y - 0.6, null];
   }
+  if (selected && selected.kind === 'pet') {
+    if (!G.pet) { selected = null; return null; }
+    return [G.pet.x, G.pet.y - 0.4, null];
+  }
   return _origBubbleTarget();
 };
 const _origRefreshBubble = refreshBubble;
 refreshBubble = function () {
-  if (selected && selected.kind === 'trader') {
+  if (selected && (selected.kind === 'trader' || selected.kind === 'pet')) {
     const bub = $('bubble');
     const t = bubbleTarget();
     if (!t) { bub.classList.add('hidden'); return; }
     bub.classList.remove('hidden');
-    const inner = traderRows();
+    let inner;
+    if (selected.kind === 'trader') inner = traderRows();
+    else {
+      const p = G.pet;
+      inner = `<h3>${p.kind === 'dog' ? '🐕' : '🐈'} ${p.name}</h3>` +
+        `<div class="sdesc">the village ${p.kind} · ${(p.hungry || 0) > 1 ? 'hungry, and patient about it' : 'fed and on duty'}</div>` +
+        `<div class="thought">“${petThought(p)}”</div>` +
+        `<div class="sdesc">Eats a little. Smells the watchers coming. Worth it.</div>`;
+    }
     if (bub.dataset.cache !== inner) { bub.dataset.cache = inner; bub.innerHTML = inner; }
     const sx = t[0] * TILE * cam.z + cam.x;
     const sy = t[1] * TILE * cam.z + cam.y;
