@@ -58,16 +58,22 @@ const BUILDS = {
   farm:       { name: 'Farm',              emoji: '🌾', cost: { wood: 12 },            slots: 4, unlock: 2, color: '#8a7a30', work: 2.5, desc: 'Break ground, sow, wait, reap. The field sets the schedule.' },
   storehouse: { name: 'Storehouse',        emoji: '📦', cost: { wood: 22 },            slots: 0, unlock: 2, color: '#5d5d6e', work: 3,   desc: 'Room to keep more than you need — for a while.' },
   delver:     { name: "Delvers' Camp",     emoji: '🏮', cost: { wood: 25 },            slots: 2, unlock: 2, color: '#7a5a85', work: 2.5, near: 'ruin', desc: 'Old places hold old fire. And older things.' },
+<<<<<<< HEAD
   lookout:    { name: 'Lookout Tower',     emoji: '🔭', cost: { wood: 12 },            slots: 1, unlock: 2, color: '#6a6048', work: 2,   desc: 'No flame — just a long ladder and younger eyes. Sees far into the dark; protects nothing.' },
   muster:     { name: 'Muster Green',      emoji: '🪤', cost: { wood: 10 },            slots: 2, unlock: 2, color: '#7a6048', work: 1.5, desc: 'Clubs and courage. Militia guard what is being hurt — they do not go looking.' },
   quarry:     { name: 'Quarry',            emoji: '⛏️', cost: { wood: 16 },            slots: 2, unlock: 3, color: '#707a85', work: 2.5, near: 'stone', desc: 'Stone, for those willing to break it loose.' },
   watch:      { name: 'Watch Post',        emoji: '🛡️', cost: { wood: 15, stone: 5 },  slots: 2, unlock: 3, color: '#8a4040', work: 2.5, desc: 'Soldiers. They hunt the things in the dark, and they do not stop at the light\'s edge.' },
   garrison:   { name: 'Garrison',          emoji: '🏹', cost: { wood: 30, stone: 15 }, slots: 3, unlock: 5, color: '#8a5050', work: 3.5, desc: 'Bows for keeping the dark at arm\'s length — or scouts, with a captive spark, for walking into it.' },
+=======
+  quarry:     { name: 'Quarry',            emoji: '⛏️', cost: { wood: 16 },            slots: 2, unlock: 3, color: '#707a85', work: 2.5, near: 'stone', desc: 'Stone, for those willing to break it loose.' },
+  watch:      { name: 'Watch Post',        emoji: '🛡️', cost: { wood: 15, stone: 5 },  slots: 2, unlock: 3, color: '#8a4040', work: 2.5, desc: 'Spears, for whatever watches back.' },
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   torch:      { name: 'Brazier',           emoji: '🔆', cost: { wood: 8, ember: 1 },   slots: 0, unlock: 3, color: '#a06a2a', work: 1,   desc: 'A captive spark — light, planted where you need it.' },
   palisade:   { name: 'Palisade',          emoji: '🛑', cost: { wood: 4 },             slots: 0, unlock: 3, color: '#5a4628', work: 0.8, desc: 'Sharpened logs. The dark must walk around.' },
   kiln:       { name: 'Ember Kiln',        emoji: '🔥', cost: { wood: 20, stone: 12 }, slots: 1, unlock: 4, color: '#9a4a30', work: 3,   desc: 'Wood in. Something brighter out. Slowly.' },
   shrine:     { name: 'Shrine of Sparks',  emoji: '🕯️', cost: { wood: 10, stone: 25 }, slots: 0, unlock: 4, color: '#a08a40', work: 3,   desc: 'A small comfort against the dark.' },
 };
+<<<<<<< HEAD
 const JOB_TYPES = ['forager', 'woodcutter', 'fisher', 'hunter', 'farm', 'quarry', 'delver', 'watch', 'kiln', 'lookout', 'muster', 'garrison'];
 const B_HP = 6;                       // every building can take six blows
 /* three things hunt in the dark, in rising order of nightmare */
@@ -76,6 +82,9 @@ const MONSTER_TYPES = {
   breaker: { hp: 4, speed: 130, lightDmg: 8,  tolerance: 0.3,  aggressive: true,  lightFloor: 1, name: 'a breaker' },
   hulk:    { hp: 6, speed: 55,  lightDmg: 3,  tolerance: 0.85, aggressive: true,  name: 'a hulking shadow' },
 };
+=======
+const JOB_TYPES = ['forager', 'woodcutter', 'fisher', 'hunter', 'farm', 'quarry', 'delver', 'watch', 'kiln'];
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 const GATHER_KINDS = { woodcutter: ['ancient', 'tree'], forager: ['berry'], quarry: ['stone'], delver: ['derrick', 'ruin'], fisher: ['fish', 'water'] };
 
 const PERKS = [
@@ -221,12 +230,16 @@ function isLit(x, y) {
   const dx = x - HX, dy = y - HY, r = effLight();
   if (dx * dx + dy * dy <= r * r) return true;
   for (const t of TORCHES) {
+<<<<<<< HEAD
     if ((t.fuel || 0) <= 0 || t.ruined) continue;        // a cold brazier guards nothing
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     const a = x - t.x, b = y - t.y;
     if (a * a + b * b <= TORCH_R * TORCH_R) return true;
   }
   return false;
 }
+<<<<<<< HEAD
 /* how fiercely the light burns at a spot — the things in the dark feel this on their skin */
 function brightnessAt(x, y) {
   let best = 0;
@@ -298,6 +311,8 @@ function rebuildRuin(b) {
   sfx('thud');
   uiDirty = true;
 }
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 function rebuildOcc() {
   OCC.fill(0);
   for (const b of G.builds) OCC[idx(b.x, b.y)] = b.id + 1;
@@ -305,10 +320,17 @@ function rebuildOcc() {
   TORCHES = G.builds.filter(b => b.type === 'torch' && b.built);
 }
 function housingCap() {
+<<<<<<< HEAD
   return HEARTH_HOUSING + G.builds.filter(b => b.type === 'cabin' && b.built && !b.ruined).reduce((s, c) => s + cabinCap(c), 0);
 }
 function caps() {
   const n = G.builds.filter(b => b.type === 'storehouse' && b.built && !b.ruined).reduce((s, b) => s + (b.lvl > 1 ? 2 : 1), 0);
+=======
+  return HEARTH_HOUSING + G.builds.filter(b => b.type === 'cabin' && b.built).reduce((s, c) => s + cabinCap(c), 0);
+}
+function caps() {
+  const n = G.builds.filter(b => b.type === 'storehouse' && b.built).reduce((s, b) => s + (b.lvl > 1 ? 2 : 1), 0);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   return { food: 150 + 150 * n, wood: 150 + 150 * n, stone: 60 + 75 * n, ember: 999, coin: 99999 };
 }
 function addRes(kind, amt) {
@@ -641,6 +663,7 @@ function spawnVillager(o) {
   G.villagers.push(v);
   return v;
 }
+<<<<<<< HEAD
 /* martial roles: soldiers hunt, militia shield, archers reach, scouts walk into the dark */
 function roleOf(v) {
   const b = v.job != null ? byId(v.job) : null;
@@ -652,6 +675,9 @@ function roleOf(v) {
 }
 const isMilitia = v => !!roleOf(v);          // any martial calling
 function unitHp(v) { if (v.hp == null) v.hp = isMilitia(v) ? 3 : 1; return v.hp; }
+=======
+function isMilitia(v) { const b = v.job != null ? byId(v.job) : null; return !!b && b.type === 'watch'; }
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 function nursing(v) {
   if (!v.bearer || v.home == null) return false;
   return G.villagers.some(c => c.home === v.home && c.family === v.family && c.age < BABY_AGE);
@@ -748,7 +774,10 @@ function homePos(v) {
   return c ? [c.x + 0.5, c.y + 0.5] : [HX + 0.5 + Math.cos(v.seat) * 2.2, HY + 0.5 + Math.sin(v.seat) * 2.2];
 }
 function workplaceViable(b) {
+<<<<<<< HEAD
   if (b.ruined) return false;                // rubble employs no one
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   if (!b.built) return true;                 // sites always want hands
   if (b.type === 'farm') return ['till', 'sow', 'harvest'].includes(b.phase);   // a growing field needs no one
   const kinds = GATHER_KINDS[b.type];
@@ -785,6 +814,7 @@ function assignJobs() {
   // the queue of posts: one slot per building per tier, so crews spread thin before doubling up
   const units = [];
   for (const b of G.builds) {
+<<<<<<< HEAD
     if (b.ruined) continue;
     let slots = b.built ? (b.halt ? 0 : slotsOf(b)) : 2;
     if (b.maxCrew != null) slots = Math.min(slots, b.maxCrew);
@@ -793,6 +823,10 @@ function assignJobs() {
       units.push({ b, pr: 1.45 });
       continue;
     }
+=======
+    let slots = b.built ? (b.halt ? 0 : slotsOf(b)) : 2;
+    if (b.maxCrew != null) slots = Math.min(slots, b.maxCrew);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     if (!slots || (b.built && !workplaceViable(b))) continue;
     const urg = b.built ? (baseUrg[b.type] || 1) : (b.rush ? 2.8 : 1.6);   // scaffolds are real jobs
     for (let k = 0; k < slots; k++) units.push({ b, pr: urg / (1 + k * 0.7) });
@@ -885,6 +919,7 @@ function updateVillager(v, dtDays) {
     v.state = follow(v, dtDays, speed, false) ? 'huddle' : 'walk';
     return;
   }
+<<<<<<< HEAD
   // martial callings answer to the dark before they answer to the clock
   const role = roleOf(v);
   if (role && martialStep(v, role, dtDays, speed)) return;
@@ -901,6 +936,9 @@ function updateVillager(v, dtDays) {
       return;
     }
   }
+=======
+  if (isMilitia(v) && v.engaged) { v.state = 'fight'; return; }
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 
   // the odd soul is up and about at strange hours
   const nightOwl = (v.id * 13 + Math.floor(G.day * 2)) % 19 === 0;
@@ -956,7 +994,20 @@ function updateVillager(v, dtDays) {
     } else if (v.job != null) {
       const b = byId(v.job);
       if (!b) { v.job = null; return; }
+<<<<<<< HEAD
       if (!v.equipped) {
+=======
+      if (b.built && b.type === 'watch') {
+        v.wait -= dtDays;
+        if (v.wait <= 0 || v.dx == null) {
+          v.wait = 0.08 + Math.random() * 0.1;
+          const ang = Math.atan2(b.y - HY, b.x - HX) + (Math.random() - 0.5) * 1.2;
+          const r = effLight() - 1.5;
+          setDest(v, clamp(HX + 0.5 + Math.cos(ang) * r, 1, W - 2), clamp(HY + 0.5 + Math.sin(ang) * r, 1, H - 2), { dark: true });
+        }
+        v.state = follow(v, dtDays, speed, false) ? 'patrol' : 'walk';
+      } else if (!v.equipped) {
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
         // first stop each morning: the building, to take up tools
         setDest(v, b.x + 0.5, b.y + 0.4);
         if (follow(v, dtDays, speed, true)) { v.equipped = true; v.state = 'work'; }
@@ -1016,6 +1067,7 @@ function updateVillager(v, dtDays) {
   }
 }
 
+<<<<<<< HEAD
 /* the soldier's day: hunt, shield, shoot or scout — each calling has its manner */
 function martialStep(v, role, dtDays, speed) {
   const b = byId(v.job);
@@ -1095,6 +1147,8 @@ function martialStep(v, role, dtDays, speed) {
   return true;
 }
 
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 /* what's on their mind — a thought sits for a while; minds don't flicker */
 function thoughtFor(v) {
   if (v.thought && G.day - (v.thoughtAt || -9) < 1.5 && v.thoughtCtx === (G.fire.lit ? 1 : 0)) return v.thought;
@@ -1192,6 +1246,10 @@ function onDeplete(ti) {
     log('The derrick gives up its last warmth. The iron stays, cold now, like everything the old world left.', '', [ti % W, Math.floor(ti / W)]);
   } else if (t.t === 'ruin') {
     t.t = 'grass'; t.amt = 0;
+<<<<<<< HEAD
+=======
+    if (Math.random() < 0.18) grantRelic([ti % W, Math.floor(ti / W)]);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   } else if (t.t === 'ancient') {
     t.t = 'grass'; t.amt = 0;
     log('An ancient tree falls — its heartwood holds embers.', '', [ti % W, Math.floor(ti / W)]);
@@ -1279,8 +1337,11 @@ function produce(dtDays) {
         b.progress = (b.progress || 0) + apt * k * dtDays * (hasRelic('compass') ? 1.33 : 1) * (G.leader && G.leader.focus === 'mason' ? 1.33 : 1);
         if (b.progress >= BUILDS[b.type].work) {
           b.built = true;
+<<<<<<< HEAD
           b.hp = B_HP;
           if (b.type === 'torch') b.fuel = 24;
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
           rebuildOcc();
           log(`${BUILDS[b.type].name} raised.`, '', [b.x, b.y]);
           if (!G.flags['built_' + b.type]) {
@@ -1297,6 +1358,7 @@ function produce(dtDays) {
       }
       continue;
     }
+<<<<<<< HEAD
     if (b.ruined) continue;
     // hands on a hurt building patch it as they work
     if (apt > 0 && b.hp != null && b.hp < B_HP) b.hp = Math.min(B_HP, b.hp + 1.6 * apt * k * dtDays);
@@ -1309,6 +1371,16 @@ function produce(dtDays) {
           G.res.wood -= need;
           G.flow.woodOut = (G.flow.woodOut || 0) + need;
           addRes('ember', (1 / DAYS_PER_YEAR) * (has('masons') ? 2 : 1) * lvlMult(b) * k * dtDays * Math.min(apt, 1.2));
+=======
+    const lm = lvlMult(b);
+    if (b.type === 'kiln') {
+      if (apt > 0) {
+        const need = 8 * k * dtDays;
+        if (G.res.wood >= need) {
+          G.res.wood -= need;
+          G.flow.woodOut = (G.flow.woodOut || 0) + need;
+          addRes('ember', 0.5 * (has('masons') ? 2 : 1) * lm * k * dtDays * Math.min(apt, 1.2));
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
         }
       }
       continue;
@@ -1339,7 +1411,16 @@ function produce(dtDays) {
       addRes('stone', gather(b, 1.25 * apt * lm * prodMult('quarry') * k * dtDays, ['stone']));
     } else if (b.type === 'delver') {
       let m = (has('delvers') ? 1.5 : 1) * (G.form && G.form.id === 'temple' ? (G.form.tier > 1 ? 1.6 : 1.3) : 1);
+<<<<<<< HEAD
       addRes('ember', gather(b, 0.4 * apt * m * lm * k * dtDays, ['derrick', 'ruin']));
+=======
+      const got = gather(b, 0.4 * apt * m * lm * k * dtDays, ['ruin']);
+      if (got > 0 && !G.flags.firstDelve) {
+        G.flags.firstDelve = true;
+        grantRelic([b.x, b.y]);    // the first dig always turns something up
+      }
+      addRes('ember', got);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     } else if (b.type === 'farm') {
       // tilling and sowing take hands; growing takes only patience
       if (b.phase === 'till') {
@@ -1461,6 +1542,7 @@ function stoke() {
   uiDirty = true;
 }
 
+<<<<<<< HEAD
 /* ---------- monsters: three kinds of nightmare, with hit points ---------- */
 let FX = [];          // transient battle effects (arrows, flashes) — drawn by the ui, never saved
 /* the schedule of nightmares: skitters alone for three years, breakers until seven, then the hulks */
@@ -1511,10 +1593,51 @@ function killMonster(m, how) {
   log(`${nm[0].toUpperCase() + nm.slice(1)} ${how}. Wire and a glass eye, under the mist.`, '', [Math.floor(m.x), Math.floor(m.y)]);
   discover('monster-slain');
   if (G.siege && !G.siege.done) G.siege.kills = (G.siege.kills || 0) + 1;
+=======
+/* ---------- monsters & militia ---------- */
+function monsterPressure() {
+  let p = 0.25 * (1 - G.fire.fuel / FUEL_MAX) + Math.min(0.4, (yearNum() - 1) * 0.035);
+  if (!G.fire.lit) p += 1.5;
+  if (evActive('howling')) p += 0.5;
+  return p;
+}
+function fearRadius() {
+  // year on year the dark grows braver; relics and form push back
+  let boldness = clamp(1 - (yearNum() - 1) * 0.04, 0.55, 1);
+  if (hasRelic('wolfbane')) boldness = Math.min(1, boldness + 0.2);
+  return effLight() * (0.35 + 0.55 * (G.fire.fuel / FUEL_MAX)) * boldness;
+}
+function nearTorch(x, y, r) {
+  for (const t of TORCHES) {
+    if (Math.hypot(x - t.x - 0.5, y - t.y - 0.5) < r) return true;
+  }
+  return false;
+}
+function spawnMonster(bold) {
+  const a = Math.random() * Math.PI * 2;
+  const r = effLight() + 3 + Math.random() * 4;
+  const m = {
+    x: clamp(HX + 0.5 + Math.cos(a) * r, 1, W - 2),
+    y: clamp(HY + 0.5 + Math.sin(a) * r, 1, H - 2),
+    fleeing: false, bold: !!bold,
+  };
+  G.monsters.push(m);
+  discover('eyes', [Math.floor(m.x), Math.floor(m.y)]);
+  if (bold) discover('bolder');
+  sfx('growl');
+}
+function monsterLoot(x, y) {
+  addRes('coin', 1 + Math.floor(Math.random() * 2));
+  addRes('food', 3 + Math.floor(Math.random() * 4));
+  if (Math.random() < 0.05) addRes('ember', 1);
+  if (Math.random() < 0.04) grantRelic([Math.floor(x), Math.floor(y)]);
+  log('The thing dissolves into mist, leaving what it had swallowed.', '', [Math.floor(x), Math.floor(y)]);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 }
 function updateMonsters(dtDays) {
   const ph = phase(G.day % 1);
   const siege = G.siege && !G.siege.done;
+<<<<<<< HEAD
   const relentless = yearNum() >= 20;
   if (ph === 'night' || !G.fire.lit || siege || relentless) {
     let expected = monsterPressure() * dtDays / 0.4;
@@ -1547,18 +1670,45 @@ function updateMonsters(dtDays) {
       sfx('growl');
     }
     // pick a destination
+=======
+  if (ph === 'night' || !G.fire.lit || siege) {
+    let expected = monsterPressure() * dtDays / 0.4;
+    if (siege && ph === 'night') expected += dtDays * (10 + pop() / 2) / 0.4;
+    if (Math.random() < expected && G.monsters.length < (siege ? 30 : 3 + Math.floor(yearNum() / 2))) {
+      spawnMonster(yearNum() >= 4 && Math.random() < Math.min(0.25, (yearNum() - 3) * 0.04));
+    }
+  }
+  const fear = G.fire.lit ? fearRadius() : 0;
+  for (const m of G.monsters) {
+    if (ph !== 'night' && G.fire.lit && !siege) m.fleeing = true;
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     let tx, ty;
     if (m.fleeing) {
       const a = Math.atan2(m.y - HY, m.x - HX);
       tx = m.x + Math.cos(a) * 6; ty = m.y + Math.sin(a) * 6;
+<<<<<<< HEAD
     } else if (m.type === 'hulk') {
       // it hunts people, and only people
+=======
+    } else if (m.bold && (evActive('howling') || G.fire.fuel < 50)) {
+      // bold ones come for the buildings — when the night howls or the fire sinks
+      let tb = null, td = 1e9;
+      for (const b of G.builds) {
+        if (b.type === 'palisade' || !b.built) continue;
+        const d = Math.hypot(b.x + 0.5 - m.x, b.y + 0.5 - m.y);
+        if (d < td) { td = d; tb = b; }
+      }
+      if (tb) { tx = tb.x + 0.5; ty = tb.y + 0.5; m.targetB = tb.id; }
+      else { tx = HX + 0.5; ty = HY + 0.5; }
+    } else {
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
       let prey = null, pd = 1e9;
       for (const v of G.villagers) {
         const d = Math.hypot(v.x - m.x, v.y - m.y);
         if (d < pd) { pd = d; prey = v; }
       }
       tx = prey ? prey.x : HX + 0.5; ty = prey ? prey.y : HY + 0.5;
+<<<<<<< HEAD
     } else if (m.type === 'breaker') {
       // it breaks what you built
       if (m.targetB == null || !byId(m.targetB) || byId(m.targetB).ruined || !byId(m.targetB).built) {
@@ -1604,11 +1754,23 @@ function updateMonsters(dtDays) {
       nx = m.x + (-vy / vd) * step * side; ny = m.y + (vx / vd) * step * side;
       if (brightnessAt(nx, ny) > def.tolerance) { nx = m.x; ny = m.y; }
     }
+=======
+    }
+    const dh = Math.hypot(m.x - HX - 0.5, m.y - HY - 0.5);
+    let vx = tx - m.x, vy = ty - m.y;
+    const vd = Math.hypot(vx, vy) || 1;
+    let step = 100 * dtDays;
+    const myFear = m.bold ? fear * 0.5 : fear;
+    if (!m.fleeing && dh - step < myFear) step = Math.max(0, dh - myFear);
+    let nx = m.x + vx / vd * step, ny = m.y + vy / vd * step;
+    // palisades and walls: the dark must walk around
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     if (OCC[idx(clamp(Math.floor(nx), 0, W - 1), clamp(Math.floor(ny), 0, H - 1))]) {
       const side = Math.random() < 0.5 ? 1 : -1;
       nx = m.x + (-vy / vd) * step * side; ny = m.y + (vx / vd) * step * side;
       if (OCC[idx(clamp(Math.floor(nx), 0, W - 1), clamp(Math.floor(ny), 0, H - 1))]) { nx = m.x; ny = m.y; }
     }
+<<<<<<< HEAD
     m.x = clamp(nx, 1, W - 2); m.y = clamp(ny, 1, H - 2);
     if (m.fleeing) {
       discover('whyfire');
@@ -1692,6 +1854,80 @@ function updateMonsters(dtDays) {
   G.monsters = G.monsters.filter(m => !m.dead);
   for (const f of FX) f.t += dtDays * 8;
   FX = FX.filter(f => f.t < 1.4);
+=======
+    // braziers hold them off
+    if (!m.fleeing && !m.bold && nearTorch(nx, ny, TORCH_R * 0.7)) { nx = m.x; ny = m.y; }
+    m.x = clamp(nx, 1, W - 2); m.y = clamp(ny, 1, H - 2);
+    // the dog smells them long before anyone sees them — and they hate being smelled
+    if (G.pet && !m.fleeing && Math.hypot(m.x - G.pet.x, m.y - G.pet.y) < 5) {
+      m.fleeing = true;
+      if (Math.random() < 0.3) log(`${G.pet.name} stands stiff-legged at the dark, making a sound you have never heard ${G.pet.kind === 'dog' ? 'a dog' : 'a cat'} make. Something retreats.`, '', [Math.floor(G.pet.x), Math.floor(G.pet.y)]);
+      sfx('growl');
+    }
+
+    if (m.fleeing) {
+      discover('whyfire');                    // watching one recoil from flame teaches you something
+      if (dh > effLight() + 9) m.dead = true;
+      continue;
+    }
+
+    // militia intercept
+    let guard = null, gd = 1e9;
+    for (const v of G.villagers) {
+      if (!isMilitia(v)) continue;
+      const d = Math.hypot(v.x - m.x, v.y - m.y);
+      if (d < gd) { gd = d; guard = v; }
+    }
+    let reach = has('spears') ? 1.6 : 0.9;
+    if (hasRelic('whistle')) reach += 0.5;
+    if (G.leader && G.leader.focus === 'warden') reach += 0.5;
+    if (G.leader && G.leader.focus === 'mason') reach -= 0.3;
+    if (guard && gd < 9) {
+      guard.engaged = true;
+      setDest(guard, m.x, m.y, { dark: true });
+      follow(guard, dtDays, 150, false);
+      if (Math.hypot(guard.x - m.x, guard.y - m.y) < reach) {
+        m.dead = true;
+        guard.engaged = false;
+        log(`${guard.name} ${guard.family} drove a thing back into the mist.`, '', [Math.floor(m.x), Math.floor(m.y)]);
+        discover('monster-slain');
+        monsterLoot(m.x, m.y);
+        if (G.siege && !G.siege.done) G.siege.kills = (G.siege.kills || 0) + 1;
+        const safe = has('spears') || (G.form && G.form.id === 'keep');
+        const packed = G.monsters.filter(o => !o.dead && Math.hypot(o.x - m.x, o.y - m.y) < 4).length;
+        if (!safe && packed >= 2 && Math.random() < 0.3) kill(guard, 'fell holding the line', 'monster-loss');
+        continue;
+      }
+    }
+    // it reaches its target
+    if (m.bold && m.targetB != null) {
+      const b = byId(m.targetB);
+      if (b && Math.hypot(b.x + 0.5 - m.x, b.y + 0.5 - m.y) < 1.1) {
+        b.built = false; b.progress = BUILDS[b.type].work * 0.4;
+        rebuildOcc();
+        log(`💥 Something tore through the ${BUILDS[b.type].name} in the night.`, 'death', [b.x, b.y]);
+        discover('raid', [b.x, b.y]);
+        G.homesDirty = true;
+        m.fleeing = true;
+        continue;
+      }
+    }
+    for (const v of G.villagers) {
+      if (isMilitia(v)) continue;
+      if (Math.hypot(v.x - m.x, v.y - m.y) < 0.8) {
+        if (Math.random() < 0.3) kill(v, 'was taken by something in the dark', 'monster-loss');
+        else {
+          G.res.food = Math.max(0, G.res.food - 8);
+          log('Something snatched at the stores and fled into the dark.', '', [Math.floor(m.x), Math.floor(m.y)]);
+        }
+        m.fleeing = true;
+        break;
+      }
+    }
+  }
+  for (const v of G.villagers) if (v.engaged && !G.monsters.some(m => !m.dead && Math.hypot(v.x - m.x, v.y - m.y) < 10)) v.engaged = false;
+  G.monsters = G.monsters.filter(m => !m.dead);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 
   // the Longest Night: survive until dawn with the fire lit
   if (siege && ph === 'day' && G.day > G.siege.starts + 0.5) {
@@ -1810,6 +2046,7 @@ function market(res) {
   if (G.trader.market[res] == null) G.trader.market[res] = 1;
   return G.trader.market[res];
 }
+<<<<<<< HEAD
 /* the trader reads your purse: the deeper it looks, the dearer his goods */
 function wealthTax() { return 1 + Math.max(0, G.res.coin - 70) / 80; }
 function sellPrice(res) { return Math.max(1, Math.round(TRADE_GOODS[res].base * market(res) * tradeFair() * (G.trader.jit && G.trader.jit[res] || 1))); }
@@ -1829,6 +2066,14 @@ function rollDeals() {
   G.trader.relic = unowned.length && Math.random() < 0.4 ? choice(unowned).id : null;
   G.trader.relicPrice = Math.round((55 + G.relics.length * 30) / tradeFair());
   return true;
+=======
+function sellPrice(res) { return Math.max(1, Math.round(TRADE_GOODS[res].base * market(res) * tradeFair() * (G.trader.jit && G.trader.jit[res] || 1))); }
+function buyPrice(res) { return Math.max(2, Math.round(TRADE_GOODS[res].base * 1.5 * market(res) / tradeFair() * (G.trader.jit && G.trader.jit[res] || 1))); }
+function rollDeals() {
+  G.trader.jit = {};
+  for (const r of Object.keys(TRADE_GOODS)) G.trader.jit[r] = 0.85 + Math.random() * 0.3;
+  return true;   // the menu is built live from prices now
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
 }
 function doTrade(res, dir) {
   const g = TRADE_GOODS[res];
@@ -1839,6 +2084,7 @@ function doTrade(res, dir) {
       G.res.coin -= cost;
       showGiftModal();
       sfx('click'); uiDirty = true;
+<<<<<<< HEAD
     } else if (res === 'relic' && dir === 'buy' && G.trader.relic) {
       if (G.res.coin < G.trader.relicPrice) return;
       G.res.coin -= G.trader.relicPrice;
@@ -1849,6 +2095,8 @@ function doTrade(res, dir) {
       log(`🏺 ${r.name} changes hands, wrapped in oilcloth. ${r.desc} The trader will not say where he got it.`, 'ember', [Math.floor(G.trader.x), Math.floor(G.trader.y)]);
       sfx('chime');
       uiDirty = true;
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     }
     return;
   }
@@ -1857,15 +2105,24 @@ function doTrade(res, dir) {
     G.res[res] -= g.unit;
     G.flow[res + 'Out'] = (G.flow[res + 'Out'] || 0) + g.unit;
     addRes('coin', sellPrice(res));
+<<<<<<< HEAD
     G.trader.market[res] = Math.max(0.35, market(res) * 0.88);   // you've glutted him
   } else {
     if (res === 'ember' && G.trader.emberSold) return;           // he carries only the one
+=======
+    G.trader.market[res] = Math.max(0.4, market(res) * 0.91);    // you've glutted him
+  } else {
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     const cost = buyPrice(res);
     if (G.res.coin < cost) return;
     G.res.coin -= cost;
     addRes(res, g.unit);
+<<<<<<< HEAD
     if (res === 'ember') { G.trader.emberSold = true; G.embersBought = (G.embersBought || 0) + 1; }
     G.trader.market[res] = Math.min(3, market(res) * 1.12);      // scarce things grow dear, fast
+=======
+    G.trader.market[res] = Math.min(2.2, market(res) * 1.07);    // scarce things grow dear
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   }
   discover('coins');
   sfx('click');
@@ -2003,8 +2260,14 @@ function processDebts() {
     if (G.day < d.due) continue;
     G.debts = G.debts.filter(x => x !== d);
     if (d.kind === 'beggar') {
+<<<<<<< HEAD
       addRes('coin', 30);
       log('💰 A rider in fine clothes dismounts and bows. "Years ago, you fed a beggar. The beggar remembers." A purse of 30 coins — and friends in far places.', 'ember', [HX, HY]);
+=======
+      addRes('coin', 25);
+      log('💰 A rider in fine clothes dismounts and bows. "Years ago, you fed a beggar. The beggar remembers." A purse of 25 coins — and friends in far places.', 'ember', [HX, HY]);
+      if (Math.random() < 0.3) grantRelic([HX, HY]);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
     } else if (d.kind === 'healed') {
       const v = G.villagers.find(x => x.id === d.who);
       if (v) {
@@ -2087,7 +2350,11 @@ function checkLandmarks() {
       if (G.tiles[idx(x, y)].t === tt) { found = [x, y]; break; }
     }
     if (!found) { G.flags['no_' + loreId] = true; continue; }    // not on this map at all
+<<<<<<< HEAD
     if (isLit(found[0], found[1]) || isScouted(found[0], found[1], visionSources())) discover(loreId, found);
+=======
+    if (isLit(found[0], found[1])) discover(loreId, found);
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   }
 }
 
@@ -2228,6 +2495,7 @@ function onNewDay(n) {
   processDebts();
   updatePetDaily();
   checkLandmarks();
+<<<<<<< HEAD
   // rubble cools; soldiers mend
   for (const b of [...G.builds]) {
     if (b.ruined && G.day - b.ruinedAt > 4) {
@@ -2239,13 +2507,21 @@ function onNewDay(n) {
   for (const v of G.villagers) {
     if (isMilitia(v) && v.hp != null && v.hp < 3 && G.res.food > 1 && v.home != null) v.hp = Math.min(3, v.hp + 1);
   }
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   if (G.homesDirty) assignHomes();
   assignJobs();
   G.jobChangesPrev = G.jobChangesToday || 0;
   G.jobChangesToday = 0;
+<<<<<<< HEAD
   // the trader's appetites drift back toward even — but he remembers for a year and a half
   if (G.trader.market) for (const r of Object.keys(G.trader.market))
     G.trader.market[r] += (1 - G.trader.market[r]) * 0.012;
+=======
+  // the trader's appetites drift back toward even
+  if (G.trader.market) for (const r of Object.keys(G.trader.market))
+    G.trader.market[r] += (1 - G.trader.market[r]) * 0.04;
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   // the village's temper, written between the lines
   const tier = G.happy >= 55 ? 2 : G.happy >= 30 ? 1 : 0;
   if (G.moodTier == null) G.moodTier = tier;
@@ -2445,6 +2721,7 @@ function tick(dtDays) {
   G.day += dtDays;
   produce(dtDays);
   updateFire(dtDays);
+<<<<<<< HEAD
   // braziers burn their own small bellies of wood — and no one feeds them but you
   for (const b of G.builds) {
     if (b.type !== 'torch' || !b.built || b.ruined || (b.fuel || 0) <= 0) continue;
@@ -2458,6 +2735,8 @@ function tick(dtDays) {
       }
     }
   }
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   updateMonsters(dtDays);
   updateTrader(dtDays);
   updatePet(dtDays);
@@ -2554,6 +2833,7 @@ function deserialize(raw) {
   G.flow = G.flow || {}; G.flowPrev = G.flowPrev || {};
   G.seen = G.seen || { stone: G.res.stone > 0, ember: G.res.ember > 0 || G.hearth.level > 1, coin: G.res.coin > 0 };
   if (G.flags.electionOpen) G.flags.electionOpen = false;
+<<<<<<< HEAD
   // older saves predate fuel, hit points and monster breeds
   for (const b of G.builds) {
     if (b.built && b.hp == null) b.hp = B_HP;
@@ -2564,6 +2844,8 @@ function deserialize(raw) {
     if (m.hp == null) m.hp = MONSTER_TYPES[m.type].hp;
     if (m.cd == null) m.cd = 0;
   }
+=======
+>>>>>>> 0caa1cec09c8b2d6f87baa8493a1102faf592c3b
   rebuildOcc();
   return true;
 }
