@@ -191,7 +191,7 @@ function showChoice(title, text, options) {
 function showVictory() {
   const deaths = G.log.filter(e => e.cls === 'death').length;
   showChoice('🌅 THE ETERNAL FLAME',
-    `Year ${yearNum()}. ${pop()} souls. ${G.relics.length} relics raised from the ruins, ${G.lore.length} truths learned, ${deaths} dark nights survived. The fire your six travellers lit will never go out. The chronicle is complete — and the village goes on.`,
+    `Year ${yearNum()}. ${pop()} souls. ${G.relics.length} relics bought from the trader, ${G.lore.length} truths learned, ${deaths} dark nights survived. The fire your six travellers lit will never go out. The chronicle is complete — and the village goes on.`,
     [{ n: 'Keep playing', d: 'There is always another spring.', fn() {} }]);
 }
 
@@ -1298,6 +1298,7 @@ function draw() {
     const dx = x - HX, dy = y - HY;
     if (dx * dx + dy * dy <= R * R) return true;
     for (const t of TORCHES) {
+      if ((t.fuel || 0) <= 0 || t.ruined) continue;
       const a = x - t.x, b = y - t.y;
       if (a * a + b * b <= TORCH_R * TORCH_R) return true;
     }
@@ -1501,6 +1502,7 @@ function draw() {
   ctx.arc((HX + 0.5) * TILE, (HY + 0.5) * TILE, (R + 0.45) * TILE, 0, 7);
   ctx.stroke();
   for (const t of TORCHES) {
+    if ((t.fuel || 0) <= 0 || t.ruined) continue;
     ctx.strokeStyle = 'rgba(240,170,80,0.09)';
     ctx.beginPath(); ctx.arc((t.x + 0.5) * TILE, (t.y + 0.5) * TILE, TORCH_R * TILE, 0, 7); ctx.stroke();
   }
@@ -1816,6 +1818,11 @@ function traderRows() {
       `<button class="btn" data-trade="${r}" data-dir="buy" ${G.res.coin < buyPrice(r) ? 'disabled' : ''}>Buy ${buyPrice(r)}🪙</button></span></div>`;
   }
   html += `<div class="srow"><span>🎁 A stranger's charm</span><button class="btn" data-trade="charm" data-dir="buy" ${G.res.coin < Math.round(40 / tradeFair()) ? 'disabled' : ''}>Buy ${Math.round(40 / tradeFair())}🪙</button></div>`;
+  if (G.trader.relic) {
+    const relic = RELICS.find(r => r.id === G.trader.relic);
+    html += `<div class="srow"><span>🏺 ${relic ? relic.name : 'Oilcloth relic'}</span><button class="btn" data-trade="relic" data-dir="buy" ${G.res.coin < G.trader.relicPrice ? 'disabled' : ''}>Buy ${G.trader.relicPrice}🪙</button></div>`;
+    if (relic) html += `<div class="sdesc">${relic.desc}</div>`;
+  }
   return html;
 }
 

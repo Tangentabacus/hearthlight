@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hearthlight</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b0e13">
+<style>
+  :root{
+    --bg:#0b0e13; --panel:rgba(15,19,27,.78); --panel2:rgba(24,30,42,.85); --line:rgba(72,86,110,.45);
+    --text:#d8d2c4; --dim:#8b93a3; --ember:#f0a843; --good:#7fc97f; --bad:#e07a6a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; overflow:hidden; background:var(--bg);}
+  body{color:var(--text); font:14px/1.5 "Segoe UI",system-ui,sans-serif;}
+  button:focus-visible, input:focus-visible{outline:2px solid var(--ember); outline-offset:2px;}
+
+  #game{position:fixed; inset:0; width:100%; height:100%; display:block; cursor:grab; touch-action:none;}
+  #game.placing{cursor:crosshair;}
+
+  .hud{position:fixed; z-index:10; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:6px 10px; backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);}
+  .hud:empty{display:none;}
+
+  #storeshud{top:10px; left:10px; font-size:13px; display:flex; flex-direction:column; gap:1px; pointer-events:none;}
+  #storeshud div{white-space:nowrap;}
+  #storeshud .cap{color:var(--dim); font-size:10.5px;}
+  #villagehud{top:10px; right:10px; font-size:13px; text-align:right; display:flex; flex-direction:column; gap:1px; pointer-events:none;}
+  .sbtn{background:transparent; color:var(--dim); border:1px solid transparent; border-radius:7px;
+    padding:3px 8px; cursor:pointer; font-size:13px; transition:color .15s, background .15s;}
+  .sbtn:hover{color:var(--text);}
+  .sbtn.active{background:var(--ember); color:#1a1208;}
+  #chroncontrols{display:flex; gap:2px; margin-left:auto; align-items:center;}
+
+  /* new chronicle entries drift down into the scroll instead of blinking into being */
+  #toasts{position:fixed; bottom:76px; left:14px; z-index:11; display:flex; flex-direction:column-reverse;
+    gap:6px; pointer-events:none; max-width:300px;}
+  .toast{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--ember);
+    border-radius:9px; padding:7px 11px; font-size:12px; color:var(--text);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    animation:toastIn .4s ease;}
+  .toast.gone{animation:toastOut .6s ease forwards;}
+  .toast .tdate{color:#5d6677; font-size:10px;}
+  .toast.death{border-left-color:var(--bad);}
+  .toast.ember{border-left-color:#ffd87a;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1;}}
+  @keyframes toastOut{to{opacity:0; transform:translate(-30px, 30px) scale(.5);}}
+
+  #hearthhud{bottom:14px; left:50%; transform:translateX(-50%); display:flex; gap:8px; padding:7px;
+    align-items:center;}
+  #stokebtn{background:var(--ember); color:#1a1208; border:none; border-radius:9px; font-weight:600;
+    font-size:14px; padding:10px 18px; cursor:pointer; transition:transform .08s, filter .2s; white-space:nowrap;}
+  #stokebtn:hover{filter:brightness(1.1);}
+  #stokebtn:active{transform:scale(.95);}
+  #stokebtn:disabled{filter:grayscale(.7) brightness(.7); cursor:default;}
+  #feedbtn{background:var(--panel2); color:var(--ember); border:1px solid var(--ember); border-radius:9px;
+    font-size:13px; padding:9px 14px; cursor:pointer; white-space:nowrap;}
+  #feedbtn:hover{background:#2a2010;}
+  #feedbtn:disabled{opacity:.45; cursor:default;}
+
+  #statusbar{position:fixed; bottom:66px; left:50%; transform:translateX(-50%); z-index:9;
+    background:rgba(11,14,19,.75); border-radius:8px; padding:4px 12px; font-size:12.5px; color:#aeb6c4;
+    pointer-events:none; max-width:80vw; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #statusbar:empty{display:none;}
+
+  /* the chronicle: a scroll whose condition is the village's condition */
+  #chronbtn{position:fixed; bottom:14px; left:14px; z-index:11; width:52px; height:52px; border-radius:50%;
+    background:var(--panel2); border:1px solid var(--line); cursor:pointer; font-size:24px; line-height:48px;
+    text-align:center; transition:filter .6s, border-color .6s, box-shadow .6s;}
+  #chronbtn.m2{filter:none; box-shadow:0 0 14px rgba(240,168,67,.25); border-color:rgba(240,168,67,.5);}
+  #chronbtn.m1{filter:sepia(.45) brightness(.85);}
+  #chronbtn.m0{filter:sepia(.8) brightness(.55) contrast(1.2); border-color:rgba(160,70,60,.6);
+    box-shadow:0 0 10px rgba(160,40,30,.3);}
+  #chronbtn .dot{position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%;
+    background:var(--ember); border:2px solid #0b0e13; display:none;}
+  #chronbtn.unread .dot{display:block;}
+
+  #buildbtn{position:fixed; bottom:14px; right:14px; z-index:11; width:52px; height:52px; border-radius:50%;
+    background:var(--panel2); border:1px solid var(--line); cursor:pointer; font-size:22px; line-height:48px; text-align:center;}
+  #buildbtn:hover, #chronbtn:hover{border-color:var(--ember);}
+  #buildpop{position:fixed; bottom:76px; right:14px; z-index:12; width:300px; max-width:calc(100vw - 28px);
+    max-height:60vh; overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:10px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);}
+  #buildmenu{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .bbtn{background:rgba(20,26,35,.7); border:1px solid var(--line); border-radius:7px; padding:6px 7px;
+    cursor:pointer; text-align:left; color:var(--text);}
+  .bbtn:hover{border-color:var(--ember);}
+  .bbtn .bn{font-size:12.5px;}
+  .bbtn .bc{font-size:11px; color:var(--dim);}
+  .bbtn.unafford .bc{color:var(--bad);}
+  .bbtn.placing{border-color:var(--ember); background:#2a2010;}
+
+  /* selection bubble floats over the thing itself */
+  #bubble{position:fixed; z-index:13; width:250px; max-width:calc(100vw - 20px); background:var(--panel);
+    border:1px solid var(--line); border-radius:12px; padding:10px 12px; backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px); font-size:12.5px;}
+  #bubble:after{content:''; position:absolute; bottom:-7px; left:50%; transform:translateX(-50%) rotate(45deg);
+    width:12px; height:12px; background:rgba(15,19,27,.85); border-right:1px solid var(--line); border-bottom:1px solid var(--line);}
+  #bubble.below:after{bottom:auto; top:-7px; transform:translateX(-50%) rotate(225deg);}
+  #bubble h3{color:var(--ember); font-size:13.5px; margin-bottom:4px;}
+  #bubble .sdesc{font-size:11.5px; color:var(--dim);}
+  #bubble .thought{font-size:12px; font-style:italic; border-left:2px solid var(--ember); padding-left:7px; margin:5px 0;}
+  #bubble .srow{display:flex; align-items:center; justify-content:space-between; margin:4px 0; gap:5px; flex-wrap:wrap;}
+  .btn{background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:6px;
+    padding:4px 9px; cursor:pointer; font-size:12px; transition:border-color .15s;}
+  .btn:hover{border-color:var(--ember);}
+  .btn:disabled{opacity:.4; cursor:default;}
+  .btn.primary{background:var(--ember); color:#1a1208; border-color:var(--ember); font-weight:600;}
+  .crewbtn{width:26px; padding:4px 0; text-align:center;}
+
+  /* chronicle panel: chronicle, lore, ledger, help in one book */
+  #chronpanel{position:fixed; bottom:76px; left:14px; z-index:12; width:380px; max-width:calc(100vw - 28px);
+    height:min(540px, calc(100vh - 150px)); background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; flex-direction:column;}
+  #chrontabs{display:flex; border-bottom:1px solid var(--line); padding:6px 6px 0;gap:2px;}
+  .tab{background:transparent; color:var(--dim); border:none; border-bottom:2px solid transparent;
+    padding:6px 10px; cursor:pointer; font-size:12.5px;}
+  .tab.active{color:var(--ember); border-bottom-color:var(--ember);}
+  #chrondate{padding:6px 12px 0; font-size:12px; color:var(--dim); font-style:italic;}
+  #chronbody{flex:1; overflow-y:auto; padding:8px 12px;}
+  #loglist{font-size:12px; color:var(--dim); display:flex; flex-direction:column; gap:3px;}
+  #loglist .ld{color:#5d6677; font-size:10.5px;}
+  #loglist .lm{color:var(--text);}
+  #loglist .entry{border-bottom:1px solid rgba(50,60,80,.35); padding-bottom:3px;}
+  #loglist .entry:first-child{animation:logIn .35s ease;}
+  #loglist .entry.loc{cursor:pointer; margin:0 -4px; padding:0 4px 3px; border-radius:4px;}
+  #loglist .entry.loc:hover{background:rgba(40,50,70,.5);}
+  #loglist .disc{color:var(--ember);}
+  #loglist .ember{color:#ffd87a; text-shadow:0 0 8px rgba(240,168,67,.4);}
+  #loglist .death{color:#e08a8a;}
+  @keyframes logIn{from{opacity:0; transform:translateY(-4px);} to{opacity:1;}}
+  .lore{background:rgba(24,30,42,.6); border:1px solid var(--line); border-radius:8px; padding:8px 11px; margin-bottom:8px;}
+  .lore .lt{color:var(--ember); font-size:13px; font-weight:600;}
+  .lore .lx{color:var(--dim); font-size:12px;}
+  .lrow{display:flex; justify-content:space-between; font-size:12.5px; margin:3px 0;}
+  .lrow span:last-child{color:var(--text); text-align:right;}
+  .lrow .pos{color:var(--good);} .lrow .neg{color:var(--bad);}
+  .helptext p{margin-bottom:10px; font-size:13px;}
+  kbd{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:0 5px; font-size:11px;}
+
+  .modal-overlay{position:fixed; inset:0; background:rgba(5,7,10,.85); display:flex;
+    align-items:center; justify-content:center; z-index:50; padding:12px;}
+  .modal{background:rgba(17,21,30,.97); border:1px solid var(--ember); border-radius:14px;
+    padding:22px 26px; max-width:580px; width:100%; max-height:88vh; overflow-y:auto; animation:modalIn .25s ease;}
+  @keyframes modalIn{from{opacity:0; transform:scale(.95);} to{opacity:1;}}
+  .modal h2{color:var(--ember); margin-bottom:12px; font-size:19px; letter-spacing:1px;}
+  .modal p{margin-bottom:10px; font-size:13.5px;}
+  .hidden{display:none !important;}
+  .mrow{display:flex; gap:10px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap;}
+  #giftcards, #choicecards{display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;}
+  .card{flex:1; min-width:140px; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:14px 12px; cursor:pointer; text-align:center; transition:transform .12s, background .12s, border-color .12s;}
+  .card:hover{border-color:var(--ember); background:#241d10; transform:translateY(-3px);}
+  .card .cn{color:var(--ember); font-weight:600; font-size:14px; margin-bottom:8px;}
+  .card .cd{font-size:12.5px; color:var(--text);}
+  #seedinput, .txtin{width:100%; background:#0b0e13; color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:8px 10px; font-size:14px; margin:8px 0;}
+  .setrow{display:flex; justify-content:space-between; align-items:center; margin:8px 0; gap:10px; flex-wrap:wrap;}
+
+  /* the intro: the first thing a stranger sees */
+  #intromodal .modal{text-align:center; border-color:rgba(240,168,67,.7); box-shadow:0 0 60px rgba(240,140,50,.15);}
+  #introtitle{font-size:34px; letter-spacing:8px; color:var(--ember); margin:8px 0 2px;
+    text-shadow:0 0 24px rgba(240,168,67,.45); font-weight:600;}
+  #introsub{color:var(--dim); font-size:12.5px; letter-spacing:3px; text-transform:uppercase; margin-bottom:16px;}
+  #introfire{font-size:40px; animation:flick 2.2s ease-in-out infinite;}
+  @keyframes flick{0%,100%{transform:scale(1); filter:brightness(1);} 38%{transform:scale(1.06); filter:brightness(1.2);} 62%{transform:scale(.97);}}
+  #intromodal p{color:var(--text); font-size:14px; max-width:430px; margin:0 auto 10px;}
+  #intromodal .mrow{justify-content:center; margin-top:16px;}
+  #intromodal .btn{padding:10px 18px; font-size:14px; border-radius:9px;}
+  #seedrow{max-width:340px; margin:8px auto 0;}
+
+  @media (max-width:700px){
+    body{font-size:13px;}
+    #storeshud, #villagehud{font-size:11.5px; padding:5px 8px;}
+    #statusbar{bottom:110px; font-size:11.5px;}
+    #hearthhud{bottom:10px;}
+    #stokebtn{padding:9px 14px; font-size:13px;}
+    #chronbtn{bottom:74px;}
+    #chronpanel{left:8px; bottom:136px; height:min(440px, calc(100vh - 200px));}
+    #toasts{bottom:136px;}
+    #buildpop{right:8px; bottom:76px;}
+    #buildbtn{bottom:74px;}
+    #introtitle{font-size:26px; letter-spacing:5px;}
+    #chroncontrols .sbtn{padding:3px 6px; font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div class="hud" id="storeshud"></div>
+<div class="hud" id="villagehud"></div>
+
+<div id="statusbar"></div>
+<div id="toasts"></div>
+
+<div class="hud" id="hearthhud">
+  <button id="stokebtn" title="The fire eats wood. Feed it.">Tend the fire</button>
+  <button id="feedbtn" class="hidden">Offer embers</button>
+</div>
+
+<button id="chronbtn" class="m2" aria-label="The chronicle"><span>📜</span><span class="dot"></span></button>
+<div id="chronpanel" class="hidden">
+  <div id="chrontabs">
+    <button class="tab active" data-tab="chron">Chronicle</button>
+    <button class="tab" data-tab="lore">Lore</button>
+    <button class="tab hidden" data-tab="ledger" id="ledgertab">Ledger</button>
+    <button class="tab" data-tab="help">Help</button>
+    <div id="chroncontrols">
+      <button class="sbtn" id="spd0" title="Pause (Space)" aria-label="Pause">⏸</button>
+      <button class="sbtn" id="spd1" title="Normal (1)" aria-label="Normal speed">▶</button>
+      <button class="sbtn" id="spd2" title="Fast (2)" aria-label="Fast">▶▶</button>
+      <button class="sbtn" id="spd4" title="Faster (3)" aria-label="Faster">▶▶▶</button>
+      <button class="sbtn" id="settingsbtn" title="Settings & saves" aria-label="Settings">⚙</button>
+    </div>
+  </div>
+  <div id="chrondate"></div>
+  <div id="chronbody">
+    <div id="loglist"></div>
+    <div id="lorelist" class="hidden"></div>
+    <div id="ledgerrows" class="hidden"></div>
+    <div id="helptext" class="hidden helptext">
+      <p>Six travellers. One fire. The dark forest all around.</p>
+      <p><b>Keep the fire fed and it will keep you.</b> Your people toss a stick on when it burns truly low — never more. A bright blaze is the keeper's work. Yours. Click the fire, or the yellow button.</p>
+      <p>Your villagers are people: they sleep, keep their own odd hours, walk to work, gather by the fire at dusk, fall in love, raise children, and wear paths in the earth. Watch them. They will teach you the rest — everything you learn is written into the <b>Lore</b>.</p>
+      <p style="color:var(--dim)">Drag to pan · scroll or pinch to zoom · tap to inspect · right-click or long-press for the build menu · <kbd>Space</kbd> pause · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> speed · <kbd>Esc</kbd> close. Autosaves.</p>
+    </div>
+  </div>
+</div>
+
+<button id="buildbtn" aria-label="Build">🔨</button>
+<div id="buildpop" class="hidden">
+  <div id="buildmenu"></div>
+</div>
+
+<div id="bubble" class="hidden"></div>
+
+<!-- The intro -->
+<div class="modal-overlay hidden" id="intromodal">
+  <div class="modal">
+    <div id="introfire">🔥</div>
+    <div id="introtitle">HEARTHLIGHT</div>
+    <div id="introsub">keep the fire · grow the light</div>
+    <p>Three pairs — six of you — slipped off the registry before dawn and ran for the unmapped wood. Behind you: a regime that rations the very light. Ahead: the dark, and the things it sends looking.</p>
+    <p>So you lit the one thing they cannot read: a fire. Feed it embers and the light grows — new ground, new crafts, new runaways drawn in from the dark. Let it gutter, and the watchers with glass eyes edge closer.</p>
+    <p style="color:var(--dim); font-size:12.5px;">Nothing will be explained that you can discover. A year passes in half an hour. The fire never stops being hungry.</p>
+    <div id="seedrow" class="hidden">
+      <input id="seedinput" placeholder="seed — any words you like" spellcheck="false" aria-label="World seed">
+      <div class="mrow">
+        <button class="btn" id="randseedbtn">🎲</button>
+        <button class="btn primary" id="beginbtn">Light the fire</button>
+      </div>
+    </div>
+    <div class="mrow" id="introbtns">
+      <button class="btn hidden" id="continuebtn">Continue</button>
+      <button class="btn primary" id="newvillagebtn">New village</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gift draft -->
+<div class="modal-overlay hidden" id="giftmodal">
+  <div class="modal">
+    <h2>🔥 The Hearth grows brighter</h2>
+    <p>The fire offers your village a Gift. <b>Choose one</b> — it is yours forever.</p>
+    <div id="giftcards"></div>
+  </div>
+</div>
+
+<!-- Generic choice -->
+<div class="modal-overlay hidden" id="choicemodal">
+  <div class="modal">
+    <h2 id="choicetitle"></h2>
+    <p id="choicetext"></p>
+    <div id="choicecards"></div>
+  </div>
+</div>
+
+<!-- Settings & saves -->
+<div class="modal-overlay hidden" id="settingsmodal">
+  <div class="modal">
+    <h2>⚙ Settings & Saves</h2>
+    <div class="setrow"><span>Sound</span><button class="btn" id="soundtoggle">On</button></div>
+    <div class="setrow"><span>Current world</span><span id="setseed" style="color:var(--dim)"></span></div>
+    <h2 style="margin-top:14px">Save slots</h2>
+    <div id="slotrows"></div>
+    <div class="setrow" style="margin-top:12px">
+      <button class="btn" id="exportbtn">Copy save to clipboard</button>
+      <button class="btn" id="importbtn">Paste save from clipboard</button>
+    </div>
+    <div class="mrow">
+      <button class="btn" id="newgamebtn">New Village</button>
+      <button class="btn primary" id="closesettingsbtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<script src="game.js?v=7"></script>
+<script src="ui.js?v=7"></script>
+=======
+<script src="game.js?v=8"></script>
+<script src="ui.js?v=8"></script>
+>>>>>>> theirs
+=======
+<script src="game.js?v=8"></script>
+<script src="ui.js?v=8"></script>
+>>>>>>> theirs
+=======
+<script src="game.js?v=8"></script>
+<script src="ui.js?v=8"></script>
+>>>>>>> theirs
+=======
+<script src="game.js?v=8"></script>
+<script src="ui.js?v=8"></script>
+>>>>>>> theirs
+</body>
+</html>
