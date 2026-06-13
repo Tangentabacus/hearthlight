@@ -148,7 +148,7 @@ const LORE = {
   'monster-loss': { t: 'And So Can We',       x: 'The dark took someone. Taken, or collected — no one says the second word aloud. Keep the fire high, or keep spears between it and your people.' },
   'raid':         { t: 'Ransacked',           x: 'They came into the light and broke what we built — methodically, like an inspection. Walls, watchposts, and bright braziers turn them aside.' },
   'torchlight':   { t: 'Carried Flame',       x: 'A spark of the Hearth, set in a brazier, makes its own small day. Light can be planted — and the village can follow it outward.' },
-  'relics':       { t: 'Relics',              x: 'The ones who came before left more than ruins. What the delvers bring up changes everything. Keep them digging.' },
+  'relics':       { t: 'Relics',              x: 'The ones who came before left more than ruins. The trader sometimes carries such things under oilcloth, priced like he can smell your purse.' },
   'trader':       { t: 'The Trader',          x: 'A wagon crosses the dark with a lantern swinging. It pays coin for surplus, sells what the forest will not give, and leaves by a different road than it came.' },
   'coins':        { t: 'Coin',                x: 'Coin does not rot, does not burn, and feeds no one. But the trader honours it.' },
   'stone':        { t: 'Stone',               x: 'Wood burns. Stone does not. The village can now build for the ages.' },
@@ -707,7 +707,7 @@ function leaveOne(reason) {
 /* homes: one family to one cabin; doubling up only when there is no other roof */
 function assignHomes() {
   G.homesDirty = false;
-  const cabins = G.builds.filter(b => b.type === 'cabin' && b.built);
+  const cabins = G.builds.filter(b => b.type === 'cabin' && b.built && !b.ruined);
   const space = new Map(cabins.map(c => [c.id, cabinCap(c)]));
   const famOf = new Map(cabins.map(c => [c.id, null]));
   for (const v of G.villagers) v.home = null;
@@ -779,7 +779,9 @@ function assignJobs() {
   const baseUrg = {
     woodcutter: 1.45 * needWood, forager: 1.4 * needFood, farm: 1.5 * needFood,
     fisher: 1.4 * needFood, hunter: 1.42 * needFood,
-    kiln: 0.8, delver: 0.95, quarry: 0.9, watch: needSpears,
+    kiln: 0.8, delver: 0.95, quarry: 0.9,
+    lookout: 1 + Math.min(0.7, Math.max(0, yearNum() - 2) * 0.06),
+    muster: needSpears * 0.95, watch: needSpears, garrison: needSpears * 1.05,
   };
   if (G.leader && G.leader.focus === 'warden') baseUrg.watch += 0.4;
   // the queue of posts: one slot per building per tier, so crews spread thin before doubling up
@@ -1308,7 +1310,7 @@ function produce(dtDays) {
         if (G.res.wood >= need) {
           G.res.wood -= need;
           G.flow.woodOut = (G.flow.woodOut || 0) + need;
-          addRes('ember', (1 / DAYS_PER_YEAR) * (has('masons') ? 2 : 1) * lvlMult(b) * k * dtDays * Math.min(apt, 1.2));
+          addRes('ember', (1 / DAYS_PER_YEAR / WORK_WINDOW) * dtDays * Math.min(apt, 1));
         }
       }
       continue;
@@ -1811,7 +1813,10 @@ function market(res) {
   return G.trader.market[res];
 }
 /* the trader reads your purse: the deeper it looks, the dearer his goods */
-function wealthTax() { return 1 + Math.max(0, G.res.coin - 70) / 80; }
+function wealthTax() {
+  const surplus = Math.max(0, G.res.coin - 70) / 180;
+  return 1 + surplus + surplus * surplus;
+}
 function sellPrice(res) { return Math.max(1, Math.round(TRADE_GOODS[res].base * market(res) * tradeFair() * (G.trader.jit && G.trader.jit[res] || 1))); }
 function buyPrice(res) {
   if (res === 'ember') {
@@ -2559,6 +2564,7 @@ function deserialize(raw) {
     if (b.built && b.hp == null) b.hp = B_HP;
     if (b.type === 'torch' && b.built && b.fuel == null) b.fuel = 20;
   }
+  if (G.trader && G.trader.relic && G.trader.relicPrice == null) G.trader.relicPrice = Math.round((55 + G.relics.length * 30) / tradeFair());
   for (const m of G.monsters) {
     if (!m.type || !MONSTER_TYPES[m.type]) m.type = 'skitter';
     if (m.hp == null) m.hp = MONSTER_TYPES[m.type].hp;
