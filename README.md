@@ -38,6 +38,12 @@ and chronicle entries click through to where they happened.
 
 Saves: autosave + 3 manual slots + clipboard export/import (⚙). No login, no server.
 
+## Regression checks
+
+With Node.js 18 or later installed, run `node --test tests/regressions.test.cjs`.
+The checks cover script loading, gatherer commutes, crew limits, save imports and
+touch gestures. The game itself still runs without Node.js or any dependencies.
+
 ## Multiplayer roadmap (designed for, not yet wired)
 
 The state is already built for it: the whole world is one serializable object (`G`), the

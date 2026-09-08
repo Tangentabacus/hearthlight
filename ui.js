@@ -624,15 +624,16 @@ let pinchDist = 0, longPress = null, touchMoved = false;
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   for (const t of e.changedTouches) touches.set(t.identifier, { x: t.clientX, y: t.clientY });
-  touchMoved = false;
+  if (touches.size === e.changedTouches.length) touchMoved = false;
   if (touches.size === 1) {
     const t = e.changedTouches[0];
     mouse.x = t.clientX; mouse.y = t.clientY;
     clearTimeout(longPress);
     longPress = setTimeout(() => {
-      if (!touchMoved) { $('buildpop').classList.toggle('hidden'); if (navigator.vibrate) navigator.vibrate(15); }
+      if (!touchMoved) { touchMoved = true; $('buildpop').classList.toggle('hidden'); if (navigator.vibrate) navigator.vibrate(15); }
     }, 480);
-  } else if (touches.size === 2) {
+  } else if (touches.size >= 2) {
+    touchMoved = true;
     clearTimeout(longPress);
     const [a, b] = [...touches.values()];
     pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
@@ -668,6 +669,13 @@ canvas.addEventListener('touchend', e => {
     const t = e.changedTouches[0];
     handleTap(t.clientX, t.clientY);
   }
+  if (touches.size < 2) pinchDist = 0;
+}, { passive: false });
+canvas.addEventListener('touchcancel', e => {
+  e.preventDefault();
+  clearTimeout(longPress);
+  for (const t of e.changedTouches) touches.delete(t.identifier);
+  touchMoved = true;
   if (touches.size < 2) pinchDist = 0;
 }, { passive: false });
 
