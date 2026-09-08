@@ -791,7 +791,7 @@ function assignJobs() {
     let slots = b.built ? (b.halt ? 0 : slotsOf(b)) : 2;
     if (b.maxCrew != null) slots = Math.min(slots, b.maxCrew);
     // a hurt building with no crew of its own still calls for a repair hand
-    if (b.built && !b.halt && !slots && b.hp != null && b.hp < B_HP) {
+    if (b.built && !b.halt && b.maxCrew !== 0 && !slots && b.hp != null && b.hp < B_HP) {
       units.push({ b, pr: 1.45 });
       continue;
     }
@@ -1000,7 +1000,8 @@ function updateVillager(v, dtDays) {
       } else {
         const wt = workTileFor(b);
         if (wt != null) {
-          if (v.workTi !== wt) { v.workTi = wt; setDest(v, wt % W + 0.5, Math.floor(wt / W) + 0.5); }
+          v.workTi = wt;
+          setDest(v, wt % W + 0.5, Math.floor(wt / W) + 0.5);
           v.state = follow(v, dtDays, speed, true) ? 'work' : 'walk';
         } else {
           setDest(v, b.x + 0.5, b.y + 0.4);
@@ -2549,29 +2550,47 @@ function serialize() {
   return JSON.stringify({ v: 3, nextId, G: { ...G, wear: G.wear.map(w => Math.round(w * 10) / 10) } });
 }
 function deserialize(raw) {
-  const data = JSON.parse(raw);
-  if (!data.G || !data.G.tiles || data.G.tiles.length !== W * H) return false;
-  G = data.G; nextId = data.nextId || 9000;
-  G.monsters = G.monsters || [];
-  G.relics = G.relics || [];
-  G.debts = G.debts || [];
-  G.flags = G.flags || {};
-  G.flow = G.flow || {}; G.flowPrev = G.flowPrev || {};
-  G.seen = G.seen || { stone: G.res.stone > 0, ember: G.res.ember > 0 || G.hearth.level > 1, coin: G.res.coin > 0 };
-  if (G.flags.electionOpen) G.flags.electionOpen = false;
-  // older saves predate fuel, hit points and monster breeds
-  for (const b of G.builds) {
-    if (b.built && b.hp == null) b.hp = B_HP;
-    if (b.type === 'torch' && b.built && b.fuel == null) b.fuel = 20;
+  let data;
+  try { data = JSON.parse(raw); } catch (e) { return false; }
+  const candidate = data && data.G;
+  if (!candidate || !Array.isArray(candidate.tiles) || candidate.tiles.length !== W * H) return false;
+  if (!['builds', 'villagers', 'wear', 'perks', 'lore', 'log'].every(k => Array.isArray(candidate[k]))) return false;
+  if (candidate.wear.length !== W * H || !candidate.tiles.every(t => t && typeof t.t === 'string')) return false;
+  if (!candidate.res || !['food', 'wood', 'stone', 'ember', 'coin'].every(k => Number.isFinite(candidate.res[k]))) return false;
+  if (!candidate.hearth || !Number.isFinite(candidate.hearth.level) || !candidate.fire || !Number.isFinite(candidate.fire.fuel)) return false;
+  if (!Number.isFinite(candidate.day) || !Number.isFinite(candidate.lastDay) || !Number.isFinite(candidate.speed)) return false;
+  if (!candidate.trader || !candidate.builds.every(b => b && BUILDS[b.type] && Number.isInteger(b.id) && Number.isInteger(b.x) && Number.isInteger(b.y) && b.x >= 0 && b.x < W && b.y >= 0 && b.y < H)) return false;
+  if (!candidate.villagers.every(v => v && v.apt && Number.isInteger(v.id) && Number.isFinite(v.x) && Number.isFinite(v.y))) return false;
+  // Migration can also fail: never leave a rejected import installed as the live world.
+  const previous = G, previousId = nextId;
+  try {
+    G = data.G; nextId = data.nextId || 9000;
+    G.monsters = G.monsters || [];
+    G.relics = G.relics || [];
+    G.debts = G.debts || [];
+    G.flags = G.flags || {};
+    G.flow = G.flow || {}; G.flowPrev = G.flowPrev || {};
+    G.seen = G.seen || { stone: G.res.stone > 0, ember: G.res.ember > 0 || G.hearth.level > 1, coin: G.res.coin > 0 };
+    if (G.flags.electionOpen) G.flags.electionOpen = false;
+    // older saves predate fuel, hit points and monster breeds
+    for (const b of G.builds) {
+      if (b.built && b.hp == null) b.hp = B_HP;
+      if (b.type === 'torch' && b.built && b.fuel == null) b.fuel = 20;
+    }
+    if (G.trader && G.trader.relic && G.trader.relicPrice == null) G.trader.relicPrice = Math.round((55 + G.relics.length * 30) / tradeFair());
+    for (const m of G.monsters) {
+      if (!m.type || !MONSTER_TYPES[m.type]) m.type = 'skitter';
+      if (m.hp == null) m.hp = MONSTER_TYPES[m.type].hp;
+      if (m.cd == null) m.cd = 0;
+    }
+    rebuildOcc();
+    buildMode = null; selected = null; uiMode = null;
+    return true;
+  } catch (e) {
+    G = previous; nextId = previousId;
+    if (G) rebuildOcc();
+    return false;
   }
-  if (G.trader && G.trader.relic && G.trader.relicPrice == null) G.trader.relicPrice = Math.round((55 + G.relics.length * 30) / tradeFair());
-  for (const m of G.monsters) {
-    if (!m.type || !MONSTER_TYPES[m.type]) m.type = 'skitter';
-    if (m.hp == null) m.hp = MONSTER_TYPES[m.type].hp;
-    if (m.cd == null) m.cd = 0;
-  }
-  rebuildOcc();
-  return true;
 }
 function saveTo(slot) {
   if (!G) return;
