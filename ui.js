@@ -6,6 +6,9 @@
 const $ = id => document.getElementById(id);
 const canvas = $('game');
 const ctx = canvas.getContext('2d');
+// Keep darkness separate so braziers can clear it without erasing the world beneath.
+const darknessCanvas = document.createElement('canvas');
+const darknessCtx = darknessCanvas.getContext('2d');
 /* older Safari and Edge lack roundRect — without this, one draw call
    kills the frame loop and the whole world freezes mid-flame */
 if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -255,8 +258,8 @@ function refreshUI() {
     sb.title = sb.disabled ? 'There is not enough wood left to catch.' : 'Coax it back to life.';
   } else {
     sb.textContent = 'Tend the fire';
-    sb.disabled = G.res.wood < 10 || G.fire.fuel > FUEL_MAX - 3;
-    sb.title = G.res.wood < 10 ? 'The woodpile is bare.' : 'Throw wood on. The fire will thank you.';
+    sb.disabled = G.res.wood < STOKE_WOOD || G.fire.fuel > FUEL_MAX - 3;
+    sb.title = G.res.wood < STOKE_WOOD ? `Tending needs ${STOKE_WOOD} wood.` : `Add ${STOKE_WOOD} wood — a small daily kindness to the fire.`;
   }
   const fb = $('feedbtn');
   if (G.seen.ember && G.fire.lit && !(G.siege && !G.siege.done)) {
@@ -338,7 +341,7 @@ function refreshChron() {
       `<div class="lrow"><span>Contentment</span><span>${G.happy}/100</span></div>` +
       `<div class="lrow"><span>Food /day</span><span>${fmt(net('food'))}</span></div>` +
       `<div class="lrow"><span>Wood /day</span><span>${fmt(net('wood'))}</span></div>` +
-      `<div class="lrow"><span>The fire eats</span><span>${fireBurnRate().toFixed(1)} wood/day</span></div>`;
+      `<div class="lrow"><span>Daily firewood</span><span>~${(fireBurnRate() * STOKE_WOOD / STOKE_FUEL).toFixed(1)} wood/day</span></div>`;
     if (G.seen.stone) html += `<div class="lrow"><span>Stone /day</span><span>${fmt(net('stone'))}</span></div>`;
     if (G.seen.ember) html += `<div class="lrow"><span>Embers /day</span><span>${fmt(net('ember'))}</span></div>`;
     if (G.seen.coin) html += `<div class="lrow"><span>Coin</span><span>${Math.floor(G.res.coin)}</span></div>`;
@@ -624,15 +627,16 @@ let pinchDist = 0, longPress = null, touchMoved = false;
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   for (const t of e.changedTouches) touches.set(t.identifier, { x: t.clientX, y: t.clientY });
-  touchMoved = false;
+  if (touches.size === e.changedTouches.length) touchMoved = false;
   if (touches.size === 1) {
     const t = e.changedTouches[0];
     mouse.x = t.clientX; mouse.y = t.clientY;
     clearTimeout(longPress);
     longPress = setTimeout(() => {
-      if (!touchMoved) { $('buildpop').classList.toggle('hidden'); if (navigator.vibrate) navigator.vibrate(15); }
+      if (!touchMoved) { touchMoved = true; $('buildpop').classList.toggle('hidden'); if (navigator.vibrate) navigator.vibrate(15); }
     }, 480);
-  } else if (touches.size === 2) {
+  } else if (touches.size >= 2) {
+    touchMoved = true;
     clearTimeout(longPress);
     const [a, b] = [...touches.values()];
     pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
@@ -668,6 +672,13 @@ canvas.addEventListener('touchend', e => {
     const t = e.changedTouches[0];
     handleTap(t.clientX, t.clientY);
   }
+  if (touches.size < 2) pinchDist = 0;
+}, { passive: false });
+canvas.addEventListener('touchcancel', e => {
+  e.preventDefault();
+  clearTimeout(longPress);
+  for (const t of e.changedTouches) touches.delete(t.identifier);
+  touchMoved = true;
   if (touches.size < 2) pinchDist = 0;
 }, { passive: false });
 
@@ -863,7 +874,42 @@ function snowAmount() {
 }
 function nightAlpha() {
   const f = G.day % 1;
-  return clamp((Math.cos((f - 0.5) * Math.PI * 2) + 1) / 2 * 1.4 - 0.2, 0, 1);
+  return clamp((Math.cos(f * Math.PI * 2) + 1) / 2 * 1.4 - 0.2, 0, 1);
+}
+
+/* Shared light falloff: the whole usable circle is illuminated, with a soft rim.
+   Removing shadow and adding warmth are separate passes for every flame. */
+function drawLightSources(cw, ch, sources, night) {
+  if (darknessCanvas.width !== canvas.width || darknessCanvas.height !== canvas.height) {
+    darknessCanvas.width = canvas.width; darknessCanvas.height = canvas.height;
+  }
+  darknessCtx.setTransform(1, 0, 0, 1, 0, 0);
+  darknessCtx.clearRect(0, 0, darknessCanvas.width, darknessCanvas.height);
+  darknessCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  darknessCtx.globalCompositeOperation = 'source-over';
+  darknessCtx.fillStyle = 'rgba(7,9,13,0.96)';
+  darknessCtx.fillRect(0, 0, cw, ch);
+  darknessCtx.globalCompositeOperation = 'destination-out';
+  for (const s of sources) {
+    const light = darknessCtx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+    light.addColorStop(0, `rgba(0,0,0,${1 - (0.03 + night * 0.09) / 0.96})`);
+    light.addColorStop(0.65, `rgba(0,0,0,${1 - (0.06 + night * 0.12) / 0.96})`);
+    light.addColorStop(0.85, `rgba(0,0,0,${1 - (0.16 + night * 0.14) / 0.96})`);
+    light.addColorStop(1, 'rgba(0,0,0,0)');
+    darknessCtx.fillStyle = light;
+    darknessCtx.fillRect(s.x - s.r, s.y - s.r, s.r * 2, s.r * 2);
+  }
+  darknessCtx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(darknessCanvas, 0, 0, cw, ch);
+  for (const s of sources) {
+    if (s.power <= 0) continue;
+    const warmth = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+    warmth.addColorStop(0, `rgba(255,174,76,${0.12 + s.power * 0.1})`);
+    warmth.addColorStop(0.65, `rgba(255,174,76,${0.04 + s.power * 0.04})`);
+    warmth.addColorStop(1, 'rgba(255,174,76,0)');
+    ctx.fillStyle = warmth;
+    ctx.fillRect(s.x - s.r, s.y - s.r, s.r * 2, s.r * 2);
+  }
 }
 
 /* each building type has its own silhouette; the hash varies the shade */
@@ -1789,17 +1835,17 @@ function draw() {
   const rr = (R + 0.5) * TILE * cam.z;
   const na = nightAlpha();
   const flick = 1 + Math.sin(now / 300) * 0.008 + Math.sin(now / 97) * 0.005;
-  let g = ctx.createRadialGradient(hx, hy, rr * 0.45, hx, hy, rr * flick);
-  g.addColorStop(0, `rgba(7,9,13,${0.06 + na * 0.18})`);
-  g.addColorStop(0.82, `rgba(7,9,13,${0.2 + na * 0.25})`);
-  g.addColorStop(1, 'rgba(7,9,13,0.96)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, cw, ch);
-  g = ctx.createRadialGradient(hx, hy, 0, hx, hy, rr * 0.55);
-  g.addColorStop(0, `rgba(255,170,70,${0.08 + (G.fire.lit ? 0.06 * G.fire.fuel / FUEL_MAX : 0)})`);
-  g.addColorStop(1, 'rgba(255,170,70,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, cw, ch);
+  const sources = [{ x: hx, y: hy, r: rr * flick, power: G.fire.lit ? G.fire.fuel / FUEL_MAX : 0 }];
+  for (const t of TORCHES) {
+    if ((t.fuel || 0) <= 0 || t.ruined) continue;
+    sources.push({
+      x: (t.x + 0.5) * TILE * cam.z + cam.x,
+      y: (t.y + 0.5) * TILE * cam.z + cam.y,
+      r: (TORCH_R + 0.5) * TILE * cam.z,
+      power: clamp(t.fuel / 30, 0, 1),
+    });
+  }
+  drawLightSources(cw, ch, sources, na);
   if (flakes.length) {
     ctx.fillStyle = 'rgba(235,240,248,0.6)';
     for (const fl of flakes) ctx.fillRect(fl.x, fl.y, fl.s + 0.4, fl.s + 0.4);

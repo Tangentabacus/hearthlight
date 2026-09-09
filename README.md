@@ -38,6 +38,32 @@ and chronicle entries click through to where they happened.
 
 Saves: autosave + 3 manual slots + clipboard export/import (⚙). No login, no server.
 
+## Regression checks
+
+With Node.js 18 or later installed, run `node --test tests/*.test.cjs`.
+The checks cover script loading, gatherer commutes, crew limits, save imports and
+touch gestures. The game itself still runs without Node.js or any dependencies.
+
+## Daily rhythm (v2026.09.08.1)
+
+Untrodden ground uses 80% of base walking speed, faint trails 110%, and worn paths
+and old roads 135%. A worn path saves about 41% of the travel time over the same
+distance off-path.
+
+Tending costs 3 wood and restores 25 fuel. A starting village burns about 21 fuel
+per day, so one click a day keeps it bright. Winter and larger villages need a
+little more. The light recedes sooner, but a full fire has several days of reserve;
+nearby villagers still preserve a low flame when wood is available.
+
+Couples need a usable cabin with room for a child. Healthy households conceive
+more readily; new pregnancies last 12 game days (existing pregnancies keep their
+remaining time). Children help from age one and take regular jobs at three. Ages
+still advance at the new year. Expectant children reserve cabin space, and couple
+formation follows game time consistently at every speed.
+
+Fueled braziers also clear their own circles in the darkness overlay, matching
+their usable light radius. Cold or ruined braziers leave the surrounding ground dark.
+
 ## Multiplayer roadmap (designed for, not yet wired)
 
 The state is already built for it: the whole world is one serializable object (`G`), the
