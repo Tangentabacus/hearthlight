@@ -6,6 +6,9 @@
 const $ = id => document.getElementById(id);
 const canvas = $('game');
 const ctx = canvas.getContext('2d');
+// Keep darkness separate so braziers can clear it without erasing the world beneath.
+const darknessCanvas = document.createElement('canvas');
+const darknessCtx = darknessCanvas.getContext('2d');
 /* older Safari and Edge lack roundRect — without this, one draw call
    kills the frame loop and the whole world freezes mid-flame */
 if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -255,8 +258,8 @@ function refreshUI() {
     sb.title = sb.disabled ? 'There is not enough wood left to catch.' : 'Coax it back to life.';
   } else {
     sb.textContent = 'Tend the fire';
-    sb.disabled = G.res.wood < 10 || G.fire.fuel > FUEL_MAX - 3;
-    sb.title = G.res.wood < 10 ? 'The woodpile is bare.' : 'Throw wood on. The fire will thank you.';
+    sb.disabled = G.res.wood < STOKE_WOOD || G.fire.fuel > FUEL_MAX - 3;
+    sb.title = G.res.wood < STOKE_WOOD ? `Tending needs ${STOKE_WOOD} wood.` : `Add ${STOKE_WOOD} wood — a small daily kindness to the fire.`;
   }
   const fb = $('feedbtn');
   if (G.seen.ember && G.fire.lit && !(G.siege && !G.siege.done)) {
@@ -338,7 +341,7 @@ function refreshChron() {
       `<div class="lrow"><span>Contentment</span><span>${G.happy}/100</span></div>` +
       `<div class="lrow"><span>Food /day</span><span>${fmt(net('food'))}</span></div>` +
       `<div class="lrow"><span>Wood /day</span><span>${fmt(net('wood'))}</span></div>` +
-      `<div class="lrow"><span>The fire eats</span><span>${fireBurnRate().toFixed(1)} wood/day</span></div>`;
+      `<div class="lrow"><span>Daily firewood</span><span>~${(fireBurnRate() * STOKE_WOOD / STOKE_FUEL).toFixed(1)} wood/day</span></div>`;
     if (G.seen.stone) html += `<div class="lrow"><span>Stone /day</span><span>${fmt(net('stone'))}</span></div>`;
     if (G.seen.ember) html += `<div class="lrow"><span>Embers /day</span><span>${fmt(net('ember'))}</span></div>`;
     if (G.seen.coin) html += `<div class="lrow"><span>Coin</span><span>${Math.floor(G.res.coin)}</span></div>`;
@@ -1797,12 +1800,34 @@ function draw() {
   const rr = (R + 0.5) * TILE * cam.z;
   const na = nightAlpha();
   const flick = 1 + Math.sin(now / 300) * 0.008 + Math.sin(now / 97) * 0.005;
-  let g = ctx.createRadialGradient(hx, hy, rr * 0.45, hx, hy, rr * flick);
+  if (darknessCanvas.width !== canvas.width || darknessCanvas.height !== canvas.height) {
+    darknessCanvas.width = canvas.width; darknessCanvas.height = canvas.height;
+  }
+  darknessCtx.setTransform(1, 0, 0, 1, 0, 0);
+  darknessCtx.clearRect(0, 0, darknessCanvas.width, darknessCanvas.height);
+  darknessCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  darknessCtx.globalCompositeOperation = 'source-over';
+  let g = darknessCtx.createRadialGradient(hx, hy, rr * 0.45, hx, hy, rr * flick);
   g.addColorStop(0, `rgba(7,9,13,${0.06 + na * 0.18})`);
   g.addColorStop(0.82, `rgba(7,9,13,${0.2 + na * 0.25})`);
   g.addColorStop(1, 'rgba(7,9,13,0.96)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, cw, ch);
+  darknessCtx.fillStyle = g;
+  darknessCtx.fillRect(0, 0, cw, ch);
+  darknessCtx.globalCompositeOperation = 'destination-out';
+  for (const t of TORCHES) {
+    if ((t.fuel || 0) <= 0 || t.ruined) continue;
+    const tx = (t.x + 0.5) * TILE * cam.z + cam.x;
+    const ty = (t.y + 0.5) * TILE * cam.z + cam.y;
+    const tr = (TORCH_R + 0.5) * TILE * cam.z;
+    const glow = darknessCtx.createRadialGradient(tx, ty, tr * 0.35, tx, ty, tr);
+    glow.addColorStop(0, `rgba(0,0,0,${0.94 - na * 0.18})`);
+    glow.addColorStop(0.8, `rgba(0,0,0,${0.8 - na * 0.15})`);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    darknessCtx.fillStyle = glow;
+    darknessCtx.fillRect(tx - tr, ty - tr, tr * 2, tr * 2);
+  }
+  darknessCtx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(darknessCanvas, 0, 0, cw, ch);
   g = ctx.createRadialGradient(hx, hy, 0, hx, hy, rr * 0.55);
   g.addColorStop(0, `rgba(255,170,70,${0.08 + (G.fire.lit ? 0.06 * G.fire.fuel / FUEL_MAX : 0)})`);
   g.addColorStop(1, 'rgba(255,170,70,0)');
