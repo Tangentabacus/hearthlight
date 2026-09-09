@@ -874,7 +874,42 @@ function snowAmount() {
 }
 function nightAlpha() {
   const f = G.day % 1;
-  return clamp((Math.cos((f - 0.5) * Math.PI * 2) + 1) / 2 * 1.4 - 0.2, 0, 1);
+  return clamp((Math.cos(f * Math.PI * 2) + 1) / 2 * 1.4 - 0.2, 0, 1);
+}
+
+/* Shared light falloff: the whole usable circle is illuminated, with a soft rim.
+   Removing shadow and adding warmth are separate passes for every flame. */
+function drawLightSources(cw, ch, sources, night) {
+  if (darknessCanvas.width !== canvas.width || darknessCanvas.height !== canvas.height) {
+    darknessCanvas.width = canvas.width; darknessCanvas.height = canvas.height;
+  }
+  darknessCtx.setTransform(1, 0, 0, 1, 0, 0);
+  darknessCtx.clearRect(0, 0, darknessCanvas.width, darknessCanvas.height);
+  darknessCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  darknessCtx.globalCompositeOperation = 'source-over';
+  darknessCtx.fillStyle = 'rgba(7,9,13,0.96)';
+  darknessCtx.fillRect(0, 0, cw, ch);
+  darknessCtx.globalCompositeOperation = 'destination-out';
+  for (const s of sources) {
+    const light = darknessCtx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+    light.addColorStop(0, `rgba(0,0,0,${1 - (0.03 + night * 0.09) / 0.96})`);
+    light.addColorStop(0.65, `rgba(0,0,0,${1 - (0.06 + night * 0.12) / 0.96})`);
+    light.addColorStop(0.85, `rgba(0,0,0,${1 - (0.16 + night * 0.14) / 0.96})`);
+    light.addColorStop(1, 'rgba(0,0,0,0)');
+    darknessCtx.fillStyle = light;
+    darknessCtx.fillRect(s.x - s.r, s.y - s.r, s.r * 2, s.r * 2);
+  }
+  darknessCtx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(darknessCanvas, 0, 0, cw, ch);
+  for (const s of sources) {
+    if (s.power <= 0) continue;
+    const warmth = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+    warmth.addColorStop(0, `rgba(255,174,76,${0.12 + s.power * 0.1})`);
+    warmth.addColorStop(0.65, `rgba(255,174,76,${0.04 + s.power * 0.04})`);
+    warmth.addColorStop(1, 'rgba(255,174,76,0)');
+    ctx.fillStyle = warmth;
+    ctx.fillRect(s.x - s.r, s.y - s.r, s.r * 2, s.r * 2);
+  }
 }
 
 /* each building type has its own silhouette; the hash varies the shade */
@@ -1800,39 +1835,17 @@ function draw() {
   const rr = (R + 0.5) * TILE * cam.z;
   const na = nightAlpha();
   const flick = 1 + Math.sin(now / 300) * 0.008 + Math.sin(now / 97) * 0.005;
-  if (darknessCanvas.width !== canvas.width || darknessCanvas.height !== canvas.height) {
-    darknessCanvas.width = canvas.width; darknessCanvas.height = canvas.height;
-  }
-  darknessCtx.setTransform(1, 0, 0, 1, 0, 0);
-  darknessCtx.clearRect(0, 0, darknessCanvas.width, darknessCanvas.height);
-  darknessCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  darknessCtx.globalCompositeOperation = 'source-over';
-  let g = darknessCtx.createRadialGradient(hx, hy, rr * 0.45, hx, hy, rr * flick);
-  g.addColorStop(0, `rgba(7,9,13,${0.06 + na * 0.18})`);
-  g.addColorStop(0.82, `rgba(7,9,13,${0.2 + na * 0.25})`);
-  g.addColorStop(1, 'rgba(7,9,13,0.96)');
-  darknessCtx.fillStyle = g;
-  darknessCtx.fillRect(0, 0, cw, ch);
-  darknessCtx.globalCompositeOperation = 'destination-out';
+  const sources = [{ x: hx, y: hy, r: rr * flick, power: G.fire.lit ? G.fire.fuel / FUEL_MAX : 0 }];
   for (const t of TORCHES) {
     if ((t.fuel || 0) <= 0 || t.ruined) continue;
-    const tx = (t.x + 0.5) * TILE * cam.z + cam.x;
-    const ty = (t.y + 0.5) * TILE * cam.z + cam.y;
-    const tr = (TORCH_R + 0.5) * TILE * cam.z;
-    const glow = darknessCtx.createRadialGradient(tx, ty, tr * 0.35, tx, ty, tr);
-    glow.addColorStop(0, `rgba(0,0,0,${0.94 - na * 0.18})`);
-    glow.addColorStop(0.8, `rgba(0,0,0,${0.8 - na * 0.15})`);
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    darknessCtx.fillStyle = glow;
-    darknessCtx.fillRect(tx - tr, ty - tr, tr * 2, tr * 2);
+    sources.push({
+      x: (t.x + 0.5) * TILE * cam.z + cam.x,
+      y: (t.y + 0.5) * TILE * cam.z + cam.y,
+      r: (TORCH_R + 0.5) * TILE * cam.z,
+      power: clamp(t.fuel / 30, 0, 1),
+    });
   }
-  darknessCtx.globalCompositeOperation = 'source-over';
-  ctx.drawImage(darknessCanvas, 0, 0, cw, ch);
-  g = ctx.createRadialGradient(hx, hy, 0, hx, hy, rr * 0.55);
-  g.addColorStop(0, `rgba(255,170,70,${0.08 + (G.fire.lit ? 0.06 * G.fire.fuel / FUEL_MAX : 0)})`);
-  g.addColorStop(1, 'rgba(255,170,70,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, cw, ch);
+  drawLightSources(cw, ch, sources, na);
   if (flakes.length) {
     ctx.fillStyle = 'rgba(235,240,248,0.6)';
     for (const fl of flakes) ctx.fillRect(fl.x, fl.y, fl.s + 0.4, fl.s + 0.4);
