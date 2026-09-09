@@ -33,10 +33,12 @@ const EAT = 0.75;
 const HEARTH_HOUSING = 6;
 const WORK_RADIUS = 5;
 const TORCH_R = 4.5;
-const BABY_AGE = 2, ADULT_AGE = 4, ELDER_AGE = 16;  // babies 0–2, helper children 2–4, grown at 4
+const BABY_AGE = 1, ADULT_AGE = 3, ELDER_AGE = 16;  // babies 0–1, helper children 1–3, grown at 3
+const PREGNANCY_DAYS = 12;
 const WORK_WINDOW = 0.50;
 const JOB_RANGE = 30;
 const FUEL_MAX = 100;
+const STOKE_WOOD = 3, STOKE_FUEL = 25;
 const SPEEDS = { spd0: 0, spd1: 1, spd2: 3, spd4: 8 };
 
 /* a 24-hour day: ~8h sleep, an easy morning hour or two, a long working day,
@@ -139,7 +141,7 @@ const LORE = {
   'harvest':      { t: 'The Harvest',         x: 'Crops sown in spring swell through summer and come in heavy in autumn. An unharvested field is killed by the first frost.' },
   'hunting':      { t: 'The Hunt',            x: 'Game runs where the trees grow thick, in every season — leaner in spring, fat in autumn. The one food the snow cannot stop.' },
   'fishing':      { t: 'Deep Water',          x: 'The water gives all year, but grudgingly under ice. A dock wants deep water close by.' },
-  'paths':        { t: 'Worn Paths',          x: 'Where feet pass often, a path wears in — and feet move faster on a worn path. Villages grow along their roads.' },
+  'paths':        { t: 'Worn Paths',          x: 'Untrodden ground slows the feet. A faint trail eases the walk; a well-worn path carries people nearly twice as quickly. Old roads are just as sure. Villages grow along their roads.' },
   'commute':      { t: 'The Long Walk',       x: 'Workers walk from bed to workplace to the resource itself, every day. Each step is an hour not worked. Place buildings beside their work, and homes beside the buildings.' },
   'construction': { t: 'Raising Walls',       x: 'Nothing builds itself. Idle hands raise new structures — and if no hands are idle, the scaffold stands empty.' },
   'eyes':         { t: 'Eyes in the Dark',    x: 'Something circles beyond the light, patient as paperwork. Animals blink. These watch in shifts. They are looking for you — six names that walked off a registry — and they creep nearer whenever the flames fall low.' },
@@ -154,7 +156,7 @@ const LORE = {
   'stone':        { t: 'Stone',               x: 'Wood burns. Stone does not. The village can now build for the ages.' },
   'spoilage':     { t: 'Rot',                 x: 'Food keeps only so long. Great stores rot from the top — better to trade, eat, or grow people than to hoard.' },
   'family':       { t: 'Hearth and Home',     x: 'Two people by the evening fire became a family. A family wants its own roof — and under one, children follow.' },
-  'children':     { t: 'Children',            x: 'Children eat little and work nothing for two years. They grow up better at their parents\' craft than their parents ever were.' },
+  'children':     { t: 'Children',            x: 'Babies spend their first year at home. At one, children lend small hands beside their parents; at three, they take up work of their own, carrying the family craft forward.' },
   'mothers':      { t: 'The Cradle Years',    x: 'A mother heavy with child, or nursing one, works at half her pace — and is all the more likely to fill the cradle again. Villages grow around full cradles.' },
   'housing':      { t: 'A Roof of One\'s Own', x: 'One family to one cabin. Crowded roofs and cold ground breed quiet misery.' },
   'first-death':  { t: 'The Mist Takes Back', x: 'Everyone returns to the dark eventually. The village mourns, and what the lost knew lives on in their children.' },
@@ -204,7 +206,7 @@ const season = () => Math.floor((Math.floor(G.day) % DAYS_PER_YEAR) / DAYS_PER_S
 const yearNum = () => Math.floor(Math.floor(G.day) / DAYS_PER_YEAR) + 1;
 const lightR = () => BASE_LIGHT + (G.hearth.level - 1) * 3 + (has('oldroads') ? 3 : 0) + (hasRelic('lantern') ? 1 : 0);
 const effLight = () => G.fire.lit
-  ? Math.max(5, Math.round(lightR() * (0.45 + 0.55 * Math.min(1, G.fire.fuel / 75))))
+  ? Math.max(5, Math.round(lightR() * (0.45 + 0.55 * Math.min(1, G.fire.fuel / FUEL_MAX))))
   : 4;
 const hearthCost = () => 4 + (G.hearth.level - 1) * 2 + Math.max(0, G.hearth.level - 4) * 2;
 const pop = () => G.villagers.length;
@@ -839,7 +841,7 @@ function follow(v, dtDays, speed, wearOn) {
   // feet move faster on a worn path
   const ti = idx(clamp(Math.floor(v.x), 0, W - 1), clamp(Math.floor(v.y), 0, H - 1));
   const wr = G.wear[ti];
-  let budget = speed * dtDays * (wr >= 12 ? 1.35 : wr >= 4 ? 1.15 : 1);
+  let budget = speed * dtDays * (G.tiles[ti].t === 'road' || wr >= 12 ? 1.35 : wr >= 4 ? 1.1 : 0.8);
   while (budget > 0) {
     let tx, ty;
     if (v.path && v.pi < v.path.length) { tx = v.path[v.pi][0] + 0.5; ty = v.path[v.pi][1] + 0.5; }
@@ -1409,7 +1411,8 @@ function farmDaily() {
 
 /* ---------- the fire ---------- */
 function fireBurnRate() {
-  let r = 2.0 + 0.18 * pop() + 0.25 * (G.hearth.level - 1);
+  // Roughly one small tending each day; a full fire still has several days of reserve.
+  let r = 20 + 0.12 * pop() + 0.35 * (G.hearth.level - 1);
   if (isWinter()) r *= 1.35;
   if (evActive('frost')) r *= 1.5;
   if (has('slowcoals')) r *= 0.85;
@@ -1422,9 +1425,10 @@ function updateFire(dtDays) {
     if (F.fuel < 28 && G.res.wood > 0) {
       const near = G.villagers.some(v => Math.hypot(v.x - HX - 0.5, v.y - HY - 0.5) < 4);
       if (near) {
-        const amt = Math.min(G.res.wood, 28 - F.fuel, 30 * dtDays);
-        G.res.wood -= amt; F.fuel += amt;
-        G.flow.woodOut = (G.flow.woodOut || 0) + amt;
+        const amt = Math.min(G.res.wood * STOKE_FUEL / STOKE_WOOD, 28 - F.fuel, 30 * dtDays);
+        const wood = amt * STOKE_WOOD / STOKE_FUEL;
+        G.res.wood -= wood; F.fuel += amt;
+        G.flow.woodOut = (G.flow.woodOut || 0) + wood;
       }
     }
     if (F.fuel < 30) discover('fire-low');
@@ -1454,11 +1458,11 @@ function rekindle() {
 }
 function stoke() {
   if (!G.fire.lit) { rekindle(); return; }
-  const cost = 10;
+  const cost = STOKE_WOOD;
   if (G.res.wood < cost || G.fire.fuel > FUEL_MAX - 3) return;
   G.res.wood -= cost;
   G.flow.woodOut = (G.flow.woodOut || 0) + cost;
-  G.fire.fuel = Math.min(FUEL_MAX, G.fire.fuel + 25);
+  G.fire.fuel = Math.min(FUEL_MAX, G.fire.fuel + STOKE_FUEL);
   if (!G.flags.stoked) { G.flags.stoked = true; log('✦ You feed the fire with your own hands. It remembers that.', 'disc', [HX, HY]); }
   sfx('whoosh');
   uiDirty = true;
@@ -1879,9 +1883,10 @@ function doTrade(res, dir) {
 }
 
 /* ---------- families ---------- */
-function familyStep() {
+function familyStep(dtDays) {
   if (phase(G.day % 1) !== 'evening') return;
-  if (Math.random() > 0.012) return;
+  // Chance per game day, independent of frame rate and the chosen game speed.
+  if (Math.random() >= 1 - Math.exp(-24 * dtDays)) return;
   const single = adults().filter(v => v.spouse == null && v.age < ELDER_AGE && v.state === 'gather');
   if (single.length < 2) return;
   const a = choice(single);
@@ -1897,18 +1902,21 @@ function familyStep() {
 function conceptions(dtDays) {
   // happiness and full stores fill cradles; nursing mothers fill them again
   const fd = G.res.food / Math.max(1, pop() * EAT);
-  let base = G.happy >= 65 && fd > 10 ? 0.034 : G.happy >= 50 && fd > 5 ? 0.018 : G.happy >= 35 ? 0.006 : 0.001;
+  let base = G.happy >= 65 && fd > 10 ? 0.045 : G.happy >= 50 && fd > 5 ? 0.026 : G.happy >= 35 ? 0.008 : 0.001;
   if (hasRelic('doll')) base *= 1.4;
   for (const v of G.villagers) {
     if (!v.bearer || v.pregnant > 0 || v.spouse == null || v.home == null) continue;
+    if (v.age < ADULT_AGE || v.age >= ELDER_AGE) continue;
     const s = G.villagers.find(o => o.id === v.spouse);
-    if (!s || s.home !== v.home) continue;
+    if (!s || s.home !== v.home || s.age < ADULT_AGE || s.age >= ELDER_AGE) continue;
+    const home = byId(v.home);
+    if (!home || home.type !== 'cabin' || !home.built || home.ruined) continue;
     const housed = G.villagers.filter(o => o.home === v.home).length;
-    const cap = cabinCap(byId(v.home) || { lvl: 1 });
-    if (housed >= cap) continue;
+    const expected = G.villagers.filter(o => o.home === v.home && o.pregnant > 0).length;
+    if (housed + expected >= cabinCap(home)) continue;
     let p = base * (nursing(v) ? 1.5 : 1);
-    if (Math.random() < p * dtDays) {
-      v.pregnant = 18;
+    if (Math.random() < 1 - Math.exp(-p * dtDays)) {
+      v.pregnant = PREGNANCY_DAYS;
       discover('mothers');
       log(`${v.name} ${v.family} is with child.`, '', v.home != null && byId(v.home) ? [byId(v.home).x, byId(v.home).y] : null);
     }
@@ -1930,7 +1938,8 @@ function gestate(dtDays) {
       }
       const c = spawnVillager({ name: choice(NAMES), family: v.family, age: 0, apt, mom: v.id });
       const home = v.home != null ? byId(v.home) : null;
-      if (home) { c.x = home.x + 0.5; c.y = home.y + 0.5; c.home = v.home; }
+      if (home && home.built && !home.ruined) { c.x = home.x + 0.5; c.y = home.y + 0.5; c.home = v.home; }
+      assignHomes();
       log(`👶 A child, ${c.name} ${c.family}, was born under the ${v.family} roof.`, '', home ? [home.x, home.y] : null);
       discover('children');
       sfx('chime');
@@ -2467,7 +2476,7 @@ function tick(dtDays) {
   updateMonsters(dtDays);
   updateTrader(dtDays);
   updatePet(dtDays);
-  familyStep();
+  familyStep(dtDays);
   conceptions(dtDays);
   gestate(dtDays);
 
@@ -2514,7 +2523,7 @@ function newGame(seedStr) {
     res: { food: 90, wood: 80, stone: 0, ember: 0, coin: 0 },
     seen: { stone: false, ember: false, coin: false },
     hearth: { level: 1 },
-    fire: { fuel: 80, lit: true },
+    fire: { fuel: FUEL_MAX, lit: true },
     form: null, leader: null, electionDue: 0,
     perks: [], relics: [], lore: [], flags: {}, event: null, debts: [],
     happy: 60, starve: 0, gloom: 0, warnedFloor: false, homesDirty: true,
